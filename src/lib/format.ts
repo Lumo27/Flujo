@@ -1,0 +1,41 @@
+export function formatCurrency(value: number, opts?: { sign?: boolean }): string {
+  const abs = Math.abs(value);
+  const formatted = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(abs);
+  if (!opts?.sign) return value < 0 ? `-${formatted}` : formatted;
+  if (value > 0) return `+${formatted}`;
+  if (value < 0) return `-${formatted}`;
+  return formatted;
+}
+
+export function formatCompact(value: number): string {
+  return new Intl.NumberFormat('es-AR', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+export function formatDateLong(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
+export function formatDateShort(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit',
+    month: 'short',
+  }).format(d);
+}
+
+export function formatWeekday(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(d);
+}
