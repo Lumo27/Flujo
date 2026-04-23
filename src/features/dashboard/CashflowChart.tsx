@@ -50,6 +50,10 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
             <defs>
+              <linearGradient id="gReal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={COLOR_INCOME} stopOpacity={0.3} />
+                <stop offset="85%" stopColor={COLOR_INCOME} stopOpacity={0} />
+              </linearGradient>
               <linearGradient id="gEst" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={COLOR_ANALYTICS} stopOpacity={0.25} />
                 <stop offset="85%" stopColor={COLOR_ANALYTICS} stopOpacity={0} />
@@ -93,21 +97,7 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               }
             />
 
-            {/*
-              Orden = z-index: el primero queda abajo, el último arriba.
-              Realidad va primero (sin fill) — Estimación y Piso renderizan
-              encima y siempre son visibles aunque coincidan con la realidad.
-            */}
-            <Area
-              type="monotone"
-              dataKey="Realidad"
-              stroke={COLOR_INCOME}
-              strokeWidth={2.5}
-              fill="none"
-              dot={false}
-              activeDot={{ r: 5, fill: COLOR_INCOME }}
-              connectNulls={false}
-            />
+            {/* Piso primero (más abajo), luego Estimación, luego Realidad encima */}
             <Area
               type="monotone"
               dataKey="Piso"
@@ -128,6 +118,17 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               dot={false}
               activeDot={{ r: 4, fill: COLOR_ANALYTICS }}
               connectNulls
+            />
+            {/* Realidad: no conecta nulls — la línea termina en el último día confirmado */}
+            <Area
+              type="monotone"
+              dataKey="Realidad"
+              stroke={COLOR_INCOME}
+              strokeWidth={2.5}
+              fill="url(#gReal)"
+              dot={false}
+              activeDot={{ r: 5, fill: COLOR_INCOME }}
+              connectNulls={false}
             />
           </AreaChart>
         </ResponsiveContainer>
