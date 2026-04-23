@@ -19,6 +19,7 @@ interface TransactionsState {
   settings: Settings;
   // actions
   addTransaction: (draft: TransactionDraft) => void;
+  addTransactions: (drafts: TransactionDraft[]) => void;
   updateTransaction: (id: string, patch: Partial<TransactionDraft>) => void;
   removeTransaction: (id: string) => void;
   confirmTransaction: (id: string, actualAmount: number) => void;
@@ -34,14 +35,30 @@ const PERSIST_KEY = 'flujo:v1';
 export const useTransactionsStore = create<TransactionsState>()(
   persist(
     (set) => ({
-      transactions: buildSeed(),
-      settings: { startingBalance: 0, seeded: true, projectionSettings: DEFAULT_PROJECTION_SETTINGS },
+      transactions: [],
+      settings: {
+        startingBalance: 0,
+        seeded: false,
+        projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+      },
 
       addTransaction: (draft) =>
         set((state) => {
           const now = new Date().toISOString();
           const t: Transaction = { ...draft, id: createId(), createdAt: now, updatedAt: now };
           return { transactions: [...state.transactions, t] };
+        }),
+
+      addTransactions: (drafts) =>
+        set((state) => {
+          const now = new Date().toISOString();
+          const newOnes = drafts.map((d) => ({
+            ...d,
+            id: createId(),
+            createdAt: now,
+            updatedAt: now,
+          }));
+          return { transactions: [...state.transactions, ...newOnes] };
         }),
 
       updateTransaction: (id, patch) =>
@@ -75,25 +92,49 @@ export const useTransactionsStore = create<TransactionsState>()(
       setStartingBalance: (amount) =>
         set((state) => ({ settings: { ...state.settings, startingBalance: amount } })),
 
+      setProjectionSettings: (ps) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            projectionSettings: { ...state.settings.projectionSettings, ...ps },
+          },
+        })),
+
       resetToSeed: () =>
-        set({ transactions: buildSeed(), settings: { startingBalance: 0, seeded: true } }),
+        set({
+          transactions: buildSeed(),
+          settings: {
+            startingBalance: 40_000,
+            seeded: true,
+            projectionSettings: { salaryAmount: 45_000, tipsEstimated: 145_000, tipsWorst: 85_000 },
+          },
+        }),
 
       clearAll: () =>
-        set({ transactions: [], settings: { startingBalance: 0, seeded: true } }),
+        set({
+          transactions: [],
+          settings: {
+            startingBalance: 0,
+            seeded: true,
+            projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+          },
+        }),
     }),
     {
       name: PERSIST_KEY,
-      version: 2,
-      migrate(persistedState, fromVersion) {
-        // v1 → v2: add projectionSettings default if missing
-        const state = persistedState as TransactionsState;
-        if (fromVersion < 2) {
-          state.settings = {
-            ...state.settings,
-            projectionSettings: state.settings.projectionSettings ?? DEFAULT_PROJECTION_SETTINGS,
+      version: 4,
+      migrate(_persistedState, fromVersion) {
+        if (fromVersion < 4) {
+          return {
+            transactions: [],
+            settings: {
+              startingBalance: 0,
+              seeded: false,
+              projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+            },
           };
         }
-        return state;
+        return _persistedState as TransactionsState;
       },
     },
   ),
