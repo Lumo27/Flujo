@@ -1,4 +1,4 @@
-import { Wallet, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { useState } from 'react';
@@ -16,35 +16,47 @@ export function BalanceCard({ balance }: Props) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(String(startingBalance));
 
+  const isPositive = balance >= 0;
+
   return (
     <>
-      <div className="card relative overflow-hidden p-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-[#4F46E5]/10" />
+      <div className="card relative overflow-hidden p-6 sm:p-8 shadow-card-lg">
+        {/* Ambient glow — muy sutil, no agresivo */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-transparent" />
+
         <div className="relative">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted">
-              <Wallet size={14} /> Saldo actual
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted">
+                Saldo disponible
+              </p>
+              <p
+                className={`mt-2 text-5xl font-semibold tracking-tight sm:text-6xl ${
+                  isPositive ? 'text-text' : 'text-expense'
+                }`}
+              >
+                {formatCurrency(balance)}
+              </p>
+              <p className="mt-2 text-sm text-muted">
+                Base <span className="text-text/80 font-medium">{formatCurrency(startingBalance)}</span>
+                {' '}+ movimientos confirmados
+              </p>
             </div>
+
             <button
               onClick={() => {
                 setValue(String(startingBalance));
                 setOpen(true);
               }}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-2/80 px-2.5 text-[11px] font-medium text-muted hover:text-text"
+              className="shrink-0 flex h-8 items-center gap-1.5 rounded-lg bg-surface-2 px-2.5 text-[11px] font-medium text-muted transition-colors hover:bg-border hover:text-text"
             >
-              <Pencil size={12} /> Saldo inicial
+              <Pencil size={11} /> Ajustar base
             </button>
           </div>
-          <p className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-            {formatCurrency(balance)}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Confirmado a hoy · Saldo inicial {formatCurrency(startingBalance)}
-          </p>
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Saldo inicial">
+      <Modal open={open} onClose={() => setOpen(false)} title="Saldo base">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -54,8 +66,8 @@ export function BalanceCard({ balance }: Props) {
           className="space-y-4"
         >
           <Field
-            label="¿Con cuánta plata arrancás?"
-            hint="Es el punto de partida para calcular proyección y peor escenario."
+            label="¿Con cuánto arrancás el mes?"
+            hint="Punto de partida para proyección y peor escenario."
           >
             <Input
               inputMode="numeric"

@@ -8,18 +8,19 @@ export function ProjectionCard({ points }: { points: ProjectionPoint[] }) {
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+      {/* Proyección usa violeta — es análisis, no acción */}
       <Block
         icon={<TrendingUp size={14} />}
-        title="Proyección a fin de mes"
+        title="A fin de mes"
         value={eom.estimated}
-        hint={`Peor escenario: ${formatCurrency(eom.worst)}`}
-        accent="primary"
+        sub={`Peor caso: ${formatCurrency(eom.worst)}`}
+        accent="analytics"
       />
       <Block
         icon={<ShieldAlert size={14} />}
-        title="Piso proyectado"
+        title="Piso del mes"
         value={floor?.amount ?? 0}
-        hint={floor ? `Punto más bajo: ${formatDateLong(floor.date)}` : 'Sin datos del mes'}
+        sub={floor ? `Fecha más crítica: ${formatDateLong(floor.date)}` : 'Sin datos aún'}
         accent={floor && floor.amount < 0 ? 'expense' : 'warning'}
         floor={floor}
       />
@@ -27,43 +28,41 @@ export function ProjectionCard({ points }: { points: ProjectionPoint[] }) {
   );
 }
 
+type Accent = 'analytics' | 'warning' | 'expense';
+
 function Block({
   icon,
   title,
   value,
-  hint,
+  sub,
   accent,
 }: {
   icon: React.ReactNode;
   title: string;
   value: number;
-  hint: string;
-  accent: 'primary' | 'warning' | 'expense';
+  sub: string;
+  accent: Accent;
   floor?: MinBalancePoint | null;
 }) {
-  const color =
-    accent === 'primary'
-      ? 'text-primary'
-      : accent === 'expense'
-        ? 'text-expense'
-        : 'text-warning';
-  const bg =
-    accent === 'primary'
-      ? 'bg-primary-soft'
-      : accent === 'expense'
-        ? 'bg-expense-soft'
-        : 'bg-[rgba(245,158,11,0.12)]';
+  const colorMap: Record<Accent, { text: string; bg: string }> = {
+    analytics: { text: 'text-analytics', bg: 'bg-analytics-soft' },
+    expense: { text: 'text-expense', bg: 'bg-expense-soft' },
+    warning: { text: 'text-warning', bg: 'bg-[rgba(245,158,11,0.12)]' },
+  };
+  const { text, bg } = colorMap[accent];
 
   return (
     <div className="card p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted">
-        <span className={`flex h-6 w-6 items-center justify-center rounded-lg ${bg} ${color}`}>
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${bg} ${text}`}>
           {icon}
         </span>
-        {title}
+        <span className="text-xs font-medium text-muted">{title}</span>
       </div>
-      <p className={`mt-3 text-2xl font-semibold ${color}`}>{formatCurrency(value)}</p>
-      <p className="mt-1 text-[11px] text-muted">{hint}</p>
+      <p className={`mt-3 text-2xl font-semibold sm:text-3xl ${text}`}>
+        {formatCurrency(value)}
+      </p>
+      <p className="mt-1.5 text-[11px] text-muted">{sub}</p>
     </div>
   );
 }

@@ -9,7 +9,13 @@
       "Bash(npm run *)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git -c user.name=\"Tonch\" -c user.email=\"tonch@local\" commit -m \"chore: scaffold Flujo MVP \\(Vite + React + TS + Tailwind\\)\")"
+      "Bash(git -c user.name=\"Tonch\" -c user.email=\"tonch@local\" commit -m \"chore: scaffold Flujo MVP \\(Vite + React + TS + Tailwind\\)\")",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Bash(git -c user.name=\"Lucas\" -c user.email=\"116810958+Lumo27@users.noreply.github.com\" commit --amend --reset-author --no-edit)",
+      "Bash(git commit *)"
     ]
   }
 }

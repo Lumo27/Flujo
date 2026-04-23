@@ -18,20 +18,27 @@ interface CardHeaderProps {
   subtitle?: string;
   action?: ReactNode;
   icon?: ReactNode;
+  /** Tono del ícono. 'primary' = azul (acción), 'analytics' = violeta (datos/proyección). */
+  iconTone?: 'primary' | 'analytics';
 }
 
-export function CardHeader({ title, subtitle, action, icon }: CardHeaderProps) {
+export function CardHeader({ title, subtitle, action, icon, iconTone = 'primary' }: CardHeaderProps) {
+  const iconClasses =
+    iconTone === 'analytics'
+      ? 'bg-analytics-soft text-analytics'
+      : 'bg-primary-soft text-primary';
+
   return (
-    <div className="mb-4 flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
+    <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3">
         {icon && (
-          <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <div className={cn('flex h-8 w-8 items-center justify-center rounded-xl', iconClasses)}>
             {icon}
           </div>
         )}
         <div>
-          <h3 className="text-sm font-medium text-muted">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-xs text-muted/80">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-text">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
         </div>
       </div>
       {action}

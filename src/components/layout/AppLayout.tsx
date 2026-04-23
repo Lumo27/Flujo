@@ -16,9 +16,9 @@ export function AppLayout() {
   return (
     <div className="min-h-full lg:grid lg:grid-cols-[240px_1fr]">
       {/* Desktop sidebar */}
-      <aside className="hidden border-r border-border bg-surface/60 px-4 py-6 lg:sticky lg:top-0 lg:block lg:h-screen">
+      <aside className="hidden border-r border-border bg-surface/50 px-4 py-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <Brand />
-        <nav className="mt-8 flex flex-col gap-1">
+        <nav className="mt-8 flex flex-col gap-0.5">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -26,14 +26,14 @@ export function AppLayout() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-primary-soft text-primary'
                     : 'text-muted hover:bg-surface-2 hover:text-text',
                 )
               }
             >
-              <Icon size={18} />
+              <Icon size={17} />
               {label}
             </NavLink>
           ))}
@@ -41,13 +41,13 @@ export function AppLayout() {
 
         <button
           onClick={() => setFormOpen(true)}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-[0_6px_20px_-8px_rgba(124,92,255,0.7)] hover:bg-primary-hover"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-[0_4px_16px_-4px_rgba(59,130,246,0.5)] hover:bg-primary-hover transition-colors"
         >
-          <Plus size={16} /> Nuevo movimiento
+          <Plus size={15} /> Nuevo movimiento
         </button>
 
-        <p className="mt-auto pt-10 text-[11px] leading-relaxed text-muted/70">
-          Flujo — proyectá, controlá y anticipá tu mes.
+        <p className="mt-auto text-[11px] leading-relaxed text-muted/60">
+          Flujo — controlá tu mes antes de que pase.
         </p>
       </aside>
 
@@ -58,10 +58,10 @@ export function AppLayout() {
           <Brand />
           <button
             onClick={() => setFormOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-[0_6px_20px_-8px_rgba(124,92,255,0.7)]"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-[0_4px_16px_-4px_rgba(59,130,246,0.5)] transition-colors hover:bg-primary-hover"
             aria-label="Nuevo movimiento"
           >
-            <Plus size={18} />
+            <Plus size={17} />
           </button>
         </header>
 
@@ -79,12 +79,12 @@ export function AppLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
+                    'flex flex-col items-center gap-1 py-3 text-[11px] font-medium transition-colors',
                     isActive ? 'text-primary' : 'text-muted',
                   )
                 }
               >
-                <Icon size={20} />
+                <Icon size={19} />
                 {label}
               </NavLink>
             ))}
@@ -100,15 +100,15 @@ export function AppLayout() {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[#4F46E5] shadow-[0_8px_24px_-8px_rgba(124,92,255,0.8)]">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-hover shadow-[0_4px_12px_-4px_rgba(59,130,246,0.7)]">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
           <path d="M4 18c3-1 5-3 7-6s4-5 7-6" />
-          <circle cx="4" cy="18" r="1.6" fill="white" />
-          <circle cx="18" cy="6" r="1.6" fill="white" />
+          <circle cx="4" cy="18" r="1.5" fill="white" stroke="none" />
+          <circle cx="18" cy="6" r="1.5" fill="white" stroke="none" />
         </svg>
       </div>
-      <span className="text-base font-semibold tracking-tight">Flujo</span>
+      <span className="text-base font-semibold tracking-tight text-text">Flujo</span>
     </div>
   );
 }

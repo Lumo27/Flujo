@@ -15,34 +15,36 @@
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     background:
-      radial-gradient(1200px 600px at 80% -10%, rgba(124, 92, 255, 0.12), transparent 60%),
-      radial-gradient(800px 400px at -10% 110%, rgba(79, 70, 229, 0.08), transparent 60%),
-      #0B0B12;
-    color: #E8E8F0;
+      radial-gradient(1000px 500px at 70% -5%, rgba(59, 130, 246, 0.07), transparent 55%),
+      radial-gradient(700px 400px at -5% 100%, rgba(30, 64, 175, 0.06), transparent 55%),
+      #0b1220;
+    color: #e5e7eb;
   }
 
   ::selection {
-    background: rgba(124, 92, 255, 0.35);
+    background: rgba(59, 130, 246, 0.3);
     color: #fff;
   }
 
   *:focus-visible {
-    outline: 2px solid #7C5CFF;
+    outline: 2px solid #3b82f6;
     outline-offset: 2px;
     border-radius: 8px;
   }
 
-  /* Slim scrollbars, matched to dark UI */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-thumb {
-    background: #262636;
-    border-radius: 10px;
+    background: #1f2937;
+    border-radius: 8px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2f2f44;
+    background: #374151;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 
