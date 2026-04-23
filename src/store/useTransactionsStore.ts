@@ -75,25 +75,11 @@ export const useTransactionsStore = create<TransactionsState>()(
       setStartingBalance: (amount) =>
         set((state) => ({ settings: { ...state.settings, startingBalance: amount } })),
 
-      setProjectionSettings: (ps) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            projectionSettings: { ...state.settings.projectionSettings, ...ps },
-          },
-        })),
-
       resetToSeed: () =>
-        set({
-          transactions: buildSeed(),
-          settings: { startingBalance: 0, seeded: true, projectionSettings: DEFAULT_PROJECTION_SETTINGS },
-        }),
+        set({ transactions: buildSeed(), settings: { startingBalance: 0, seeded: true } }),
 
       clearAll: () =>
-        set({
-          transactions: [],
-          settings: { startingBalance: 0, seeded: true, projectionSettings: DEFAULT_PROJECTION_SETTINGS },
-        }),
+        set({ transactions: [], settings: { startingBalance: 0, seeded: true } }),
     }),
     {
       name: PERSIST_KEY,
