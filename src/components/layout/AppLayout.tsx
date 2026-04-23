@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, CalendarDays, Plus } from 'lucide-react';
+import { LayoutDashboard, ListOrdered, CalendarDays, Plus, Compass } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useState } from 'react';
 import { TransactionFormModal } from '@/features/transactions/TransactionFormModal';
@@ -8,6 +8,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/movimientos', label: 'Movimientos', icon: ListOrdered },
   { to: '/calendario', label: 'Calendario', icon: CalendarDays },
+  { to: '/como-fluir', label: 'Cómo Fluir', icon: Compass },
 ];
 
 export function AppLayout() {
@@ -71,7 +72,7 @@ export function AppLayout() {
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg/90 backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-xl grid-cols-3">
+          <div className="mx-auto grid max-w-xl grid-cols-4">
             {nav.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
@@ -79,7 +80,7 @@ export function AppLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 py-3 text-[11px] font-medium transition-colors',
+                    'flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors',
                     isActive ? 'text-primary' : 'text-muted',
                   )
                 }

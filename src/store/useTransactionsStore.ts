@@ -9,8 +9,6 @@ interface Settings {
   startingBalance: number;
   /** Whether the user has completed the initial seed / onboarding. */
   seeded: boolean;
-  /** Whether the user dismissed the "Cómo Fluir" onboarding card. */
-  onboardingDismissed: boolean;
 }
 
 interface TransactionsState {
@@ -23,7 +21,6 @@ interface TransactionsState {
   confirmTransaction: (id: string, actualAmount: number) => void;
   unconfirmTransaction: (id: string) => void;
   setStartingBalance: (amount: number) => void;
-  dismissOnboarding: () => void;
   resetToSeed: () => void;
   clearAll: () => void;
 }
@@ -34,7 +31,7 @@ export const useTransactionsStore = create<TransactionsState>()(
   persist(
     (set) => ({
       transactions: buildSeed(),
-      settings: { startingBalance: 0, seeded: true, onboardingDismissed: false },
+      settings: { startingBalance: 0, seeded: true },
 
       addTransaction: (draft) =>
         set((state) => {
@@ -74,14 +71,11 @@ export const useTransactionsStore = create<TransactionsState>()(
       setStartingBalance: (amount) =>
         set((state) => ({ settings: { ...state.settings, startingBalance: amount } })),
 
-      dismissOnboarding: () =>
-        set((state) => ({ settings: { ...state.settings, onboardingDismissed: true } })),
-
       resetToSeed: () =>
-        set({ transactions: buildSeed(), settings: { startingBalance: 0, seeded: true, onboardingDismissed: false } }),
+        set({ transactions: buildSeed(), settings: { startingBalance: 0, seeded: true } }),
 
       clearAll: () =>
-        set({ transactions: [], settings: { startingBalance: 0, seeded: true, onboardingDismissed: false } }),
+        set({ transactions: [], settings: { startingBalance: 0, seeded: true } }),
     }),
     {
       name: PERSIST_KEY,
