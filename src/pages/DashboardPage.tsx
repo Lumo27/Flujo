@@ -1,15 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { BalanceCard } from '@/features/dashboard/BalanceCard';
 import { MonthSummary } from '@/features/dashboard/MonthSummary';
 import { ProjectionCard } from '@/features/dashboard/ProjectionCard';
 import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
+import { ProjectionSettingsModal } from '@/features/dashboard/ProjectionSettingsModal';
 import { currentBalance, monthSummary, projectMonth, upcoming } from '@/lib/calc';
+import { SlidersHorizontal } from 'lucide-react';
 
 export function DashboardPage() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const startingBalance = useTransactionsStore((s) => s.settings.startingBalance);
+  const projectionSettings = useTransactionsStore((s) => s.settings.projectionSettings);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const now = useMemo(() => new Date(), []);
   const balance = useMemo(
@@ -18,19 +23,29 @@ export function DashboardPage() {
   );
   const summary = useMemo(() => monthSummary(transactions, now), [transactions, now]);
   const points = useMemo(
-    () => projectMonth(transactions, now, startingBalance),
-    [transactions, now, startingBalance],
+    () => projectMonth(transactions, now, startingBalance, projectionSettings),
+    [transactions, now, startingBalance, projectionSettings],
   );
   const next = useMemo(() => upcoming(transactions, 14), [transactions]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-5">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-wider text-muted">Dashboard</p>
-        <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Tu flujo del mes</h1>
-        <p className="mt-1 text-sm text-muted">
-          Saldo real, proyección estimada y peor escenario — de un vistazo.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted">Dashboard</p>
+          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Tu flujo del mes</h1>
+          <p className="mt-1 text-sm text-muted">
+            Saldo real, proyección estimada y piso garantizado — de un vistazo.
+          </p>
+        </div>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="mt-1 flex shrink-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary"
+          title="Modificar parámetros de proyección"
+        >
+          <SlidersHorizontal size={14} />
+          <span className="hidden sm:inline">Proyecciones</span>
+        </button>
       </header>
 
       <BalanceCard balance={balance} />
@@ -41,6 +56,8 @@ export function DashboardPage() {
         <CashflowChart points={points} />
         <UpcomingList items={next} />
       </div>
+
+      <ProjectionSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
