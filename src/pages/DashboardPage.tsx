@@ -6,6 +6,7 @@ import { ProjectionCard } from '@/features/dashboard/ProjectionCard';
 import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
 import { currentBalance, monthSummary, projectMonth, upcoming } from '@/lib/calc';
+import { HowToFlowCard } from '@/features/dashboard/HowToFlowCard';
 
 export function DashboardPage() {
   const transactions = useTransactionsStore((s) => s.transactions);
@@ -33,6 +34,7 @@ export function DashboardPage() {
         </p>
       </header>
 
+      <HowToFlowCard />
       <BalanceCard balance={balance} />
       <MonthSummary summary={summary} />
       <ProjectionCard points={points} />

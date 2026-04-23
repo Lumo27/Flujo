@@ -14,6 +14,8 @@
 
 Cargás tus ingresos y pagos esperados del mes, Flujo proyecta tu saldo día a día, te muestra el peor escenario posible, y a medida que pasa el mes confirmás los movimientos con su monto real.
 
+> **¿No sabés por dónde empezar?** La sección **Cómo Fluir** dentro de la app te guía en cuatro pasos concretos — desde configurar tu base hasta confirmar tus primeros movimientos.
+
 ---
 
 ## ✨ Por qué Flujo
