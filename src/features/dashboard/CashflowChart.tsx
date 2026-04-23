@@ -93,7 +93,21 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               }
             />
 
-            {/* Piso: área sutil abajo, siempre visible */}
+            {/*
+              Orden = z-index: el primero queda abajo, el último arriba.
+              Realidad va primero (sin fill) — Estimación y Piso renderizan
+              encima y siempre son visibles aunque coincidan con la realidad.
+            */}
+            <Area
+              type="monotone"
+              dataKey="Realidad"
+              stroke={COLOR_INCOME}
+              strokeWidth={2.5}
+              fill="none"
+              dot={false}
+              activeDot={{ r: 5, fill: COLOR_INCOME }}
+              connectNulls={false}
+            />
             <Area
               type="monotone"
               dataKey="Piso"
@@ -105,7 +119,6 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               activeDot={{ r: 4, fill: COLOR_WARNING }}
               connectNulls
             />
-            {/* Estimación: área media, siempre visible */}
             <Area
               type="monotone"
               dataKey="Estimación"
@@ -115,21 +128,6 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               dot={false}
               activeDot={{ r: 4, fill: COLOR_ANALYTICS }}
               connectNulls
-            />
-            {/*
-              Realidad: SIN fill para no tapar las proyecciones de abajo.
-              Es una línea verde sólida que el usuario compara visualmente
-              contra Estimación y Piso — ¿estoy por encima? ¿cerca del piso?
-            */}
-            <Area
-              type="monotone"
-              dataKey="Realidad"
-              stroke={COLOR_INCOME}
-              strokeWidth={2.5}
-              fill="none"
-              dot={false}
-              activeDot={{ r: 5, fill: COLOR_INCOME }}
-              connectNulls={false}
             />
           </AreaChart>
         </ResponsiveContainer>

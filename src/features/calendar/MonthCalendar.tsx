@@ -102,7 +102,7 @@ export function MonthCalendar({ transactions, projection }: Props) {
                     {hasPending && <span className="h-1.5 w-1.5 rounded-full bg-warning" />}
                   </div>
                 )}
-                {proj != null && inMonth && (
+                {proj != null && inMonth && items.length > 0 && (
                   <span className="hidden text-[10px] text-muted sm:block">
                     {formatCompact(proj)}
                   </span>
@@ -124,7 +124,7 @@ export function MonthCalendar({ transactions, projection }: Props) {
           <h3 className="text-base font-semibold capitalize">
             {selected ? formatDateLong(selected) : '—'}
           </h3>
-          {selected && projByDate.get(selected) != null && (
+          {selected && projByDate.get(selected) != null && selectedItems.length > 0 && (
             <p className="mt-1 text-xs text-muted">
               Saldo proyectado: {formatCurrency(projByDate.get(selected)!)}
             </p>

@@ -6,7 +6,7 @@ import { ProjectionCard } from '@/features/dashboard/ProjectionCard';
 import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
 import { ProjectionSettingsModal } from '@/features/dashboard/ProjectionSettingsModal';
-import { currentBalance, monthSummary, projectMonth, upcoming } from '@/lib/calc';
+import { currentBalance, monthIncomeProjection, monthSummary, projectMonth, upcoming } from '@/lib/calc';
 import { SlidersHorizontal } from 'lucide-react';
 
 export function DashboardPage() {
@@ -25,6 +25,10 @@ export function DashboardPage() {
   const points = useMemo(
     () => projectMonth(transactions, now, startingBalance, projectionSettings),
     [transactions, now, startingBalance, projectionSettings],
+  );
+  const incomeProjection = useMemo(
+    () => monthIncomeProjection(transactions, now, projectionSettings),
+    [transactions, now, projectionSettings],
   );
   const next = useMemo(() => upcoming(transactions, 14), [transactions]);
 
@@ -50,7 +54,7 @@ export function DashboardPage() {
 
       <BalanceCard balance={balance} />
       <MonthSummary summary={summary} />
-      <ProjectionCard points={points} />
+      <ProjectionCard income={incomeProjection} />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:gap-5">
         <CashflowChart points={points} />

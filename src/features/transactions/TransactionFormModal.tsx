@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { addMonths, isSameMonth, isToday } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/Input';
@@ -12,7 +14,8 @@ import {
   TransactionType,
   Variability,
 } from '@/types/transaction';
-import { todayISO } from '@/lib/date';
+import { calendarGrid, monthLabel, todayISO, toISO } from '@/lib/date';
+import { cn } from '@/lib/cn';
 
 interface Props {
   open: boolean;
@@ -21,8 +24,11 @@ interface Props {
   transaction?: Transaction;
 }
 
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
 export function TransactionFormModal({ open, onClose, transaction }: Props) {
   const addTransaction = useTransactionsStore((s) => s.addTransaction);
+  const addTransactions = useTransactionsStore((s) => s.addTransactions);
   const updateTransaction = useTransactionsStore((s) => s.updateTransaction);
 
   const isEdit = Boolean(transaction);
@@ -33,11 +39,16 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
   const [minAmount, setMinAmount] = useState('');
   const [variability, setVariability] = useState<Variability>('fixed');
   const [category, setCategory] = useState<TransactionCategory>('other');
-  const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Al abrir: si es edición carga los datos existentes, si es creación resetea.
+  // — Creación: múltiples fechas seleccionadas
+  const [selectedDates, setSelectedDates] = useState<string[]>([todayISO()]);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+
+  // — Edición: fecha única
+  const [date, setDate] = useState(todayISO());
+
   useEffect(() => {
     if (!open) return;
     setError(null);
@@ -57,17 +68,27 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setMinAmount('');
       setVariability('fixed');
       setCategory('other');
-      setDate(todayISO());
       setNote('');
+      setSelectedDates([todayISO()]);
+      setCalendarMonth(new Date());
     }
   }, [open, transaction]);
 
-  // Mantener categoría válida al cambiar tipo (solo en creación)
   useEffect(() => {
     if (isEdit) return;
     const pool = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
     if (!pool.includes(category)) setCategory(pool[0]);
   }, [type, category, isEdit]);
+
+  function toggleDate(iso: string) {
+    setSelectedDates((prev) =>
+      prev.includes(iso)
+        ? prev.length === 1
+          ? prev // al menos 1 fecha siempre
+          : prev.filter((d) => d !== iso)
+        : [...prev, iso].sort(),
+    );
+  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,22 +113,29 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
         minAmount: min,
       });
     } else {
-      addTransaction({
-        type,
-        status: 'pending',
-        variability,
-        category,
-        title: title.trim(),
-        note: note.trim() || undefined,
-        date,
-        estimatedAmount: num,
-        minAmount: min,
-      });
+      // Crear una transacción por cada fecha seleccionada
+      const isFixedExpense = type === 'expense' && variability === 'fixed';
+      addTransactions(
+        selectedDates.map((d) => ({
+          type,
+          // Gastos fijos: se auto-confirman (el monto nunca cambia, no hay qué verificar)
+          status: isFixedExpense ? ('confirmed' as const) : ('pending' as const),
+          actualAmount: isFixedExpense ? num : undefined,
+          variability,
+          category,
+          title: title.trim(),
+          note: note.trim() || undefined,
+          date: d,
+          estimatedAmount: num,
+          minAmount: min,
+        })),
+      );
     }
     onClose();
   }
 
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const calDays = calendarGrid(calendarMonth);
 
   return (
     <Modal
@@ -116,7 +144,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       title={isEdit ? 'Editar movimiento' : 'Nuevo movimiento'}
     >
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* Selector tipo — bloqueado en edición para no cambiar la semántica del movimiento */}
+        {/* Tipo */}
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface-2 p-1">
           <button
             type="button"
@@ -153,7 +181,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className={isEdit ? 'grid grid-cols-2 gap-3' : ''}>
           <Field label="Monto estimado">
             <Input
               inputMode="numeric"
@@ -162,10 +190,88 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
               placeholder="0"
             />
           </Field>
-          <Field label="Fecha">
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </Field>
+
+          {/* Edición: fecha única */}
+          {isEdit && (
+            <Field label="Fecha">
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+          )}
         </div>
+
+        {/* Creación: selector de múltiples fechas */}
+        {!isEdit && (
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-medium text-text">Días</span>
+              <span className="text-[11px] text-muted">
+                {selectedDates.length === 1
+                  ? '1 día seleccionado'
+                  : `${selectedDates.length} días seleccionados`}
+              </span>
+            </div>
+
+            {/* Navegación de mes */}
+            <div className="rounded-xl border border-border bg-surface-2/50 p-2">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <button
+                  type="button"
+                  onClick={() => setCalendarMonth(addMonths(calendarMonth, -1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-xs font-semibold capitalize text-text">
+                  {monthLabel(calendarMonth)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+
+              {/* Cabecera de días de la semana */}
+              <div className="mb-1 grid grid-cols-7 text-center">
+                {WEEKDAYS.map((d, i) => (
+                  <span key={i} className="text-[10px] font-medium text-muted">
+                    {d}
+                  </span>
+                ))}
+              </div>
+
+              {/* Grilla de días */}
+              <div className="grid grid-cols-7 gap-0.5">
+                {calDays.map((d) => {
+                  const iso = toISO(d);
+                  const inMonth = isSameMonth(d, calendarMonth);
+                  const sel = selectedDates.includes(iso);
+                  const today = isToday(d);
+
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      disabled={!inMonth}
+                      onClick={() => toggleDate(iso)}
+                      className={cn(
+                        'flex h-8 w-full items-center justify-center rounded-lg text-xs font-medium transition-colors',
+                        !inMonth && 'opacity-0 pointer-events-none',
+                        inMonth && sel && 'bg-primary text-white',
+                        inMonth && !sel && today && 'border border-primary text-primary hover:bg-primary-soft',
+                        inMonth && !sel && !today && 'text-muted hover:bg-surface-2 hover:text-text',
+                      )}
+                    >
+                      {d.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Categoría">
@@ -215,7 +321,13 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit">{isEdit ? 'Guardar cambios' : 'Guardar'}</Button>
+          <Button type="submit">
+            {isEdit
+              ? 'Guardar cambios'
+              : selectedDates.length === 1
+                ? 'Guardar'
+                : `Guardar ${selectedDates.length} movimientos`}
+          </Button>
         </div>
       </form>
     </Modal>

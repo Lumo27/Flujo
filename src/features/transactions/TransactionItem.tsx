@@ -19,6 +19,8 @@ export function TransactionItem({ t }: { t: Transaction }) {
   const [actual, setActual] = useState(String(t.estimatedAmount));
 
   const isIncome = t.type === 'income';
+  // Los gastos fijos se auto-confirman: no necesitan confirmación manual
+  const isFixedExpense = t.type === 'expense' && t.variability === 'fixed';
   const amount = t.status === 'confirmed' ? (t.actualAmount ?? t.estimatedAmount) : t.estimatedAmount;
   const delta =
     t.status === 'confirmed' && t.actualAmount != null ? t.actualAmount - t.estimatedAmount : 0;
@@ -58,24 +60,27 @@ export function TransactionItem({ t }: { t: Transaction }) {
         </div>
 
         <div className="ml-1 flex items-center gap-1">
-          {t.status === 'pending' ? (
-            <button
-              onClick={() => setConfirmOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-income"
-              aria-label="Confirmar"
-              title="Confirmar con monto real"
-            >
-              <Check size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={() => unconfirmTransaction(t.id)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
-              aria-label="Deshacer confirmación"
-              title="Deshacer confirmación"
-            >
-              <Undo2 size={16} />
-            </button>
+          {/* Gastos fijos: sin confirmación — solo editar y eliminar */}
+          {!isFixedExpense && (
+            t.status === 'pending' ? (
+              <button
+                onClick={() => setConfirmOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-income"
+                aria-label="Confirmar"
+                title="Confirmar con monto real"
+              >
+                <Check size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={() => unconfirmTransaction(t.id)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+                aria-label="Deshacer confirmación"
+                title="Deshacer confirmación"
+              >
+                <Undo2 size={16} />
+              </button>
+            )
           )}
 
           <button
