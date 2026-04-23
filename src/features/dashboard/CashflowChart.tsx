@@ -50,10 +50,6 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
             <defs>
-              <linearGradient id="gReal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLOR_INCOME} stopOpacity={0.3} />
-                <stop offset="85%" stopColor={COLOR_INCOME} stopOpacity={0} />
-              </linearGradient>
               <linearGradient id="gEst" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={COLOR_ANALYTICS} stopOpacity={0.25} />
                 <stop offset="85%" stopColor={COLOR_ANALYTICS} stopOpacity={0} />
@@ -97,7 +93,7 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               }
             />
 
-            {/* Piso primero (más abajo), luego Estimación, luego Realidad encima */}
+            {/* Piso: área sutil abajo, siempre visible */}
             <Area
               type="monotone"
               dataKey="Piso"
@@ -109,6 +105,7 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               activeDot={{ r: 4, fill: COLOR_WARNING }}
               connectNulls
             />
+            {/* Estimación: área media, siempre visible */}
             <Area
               type="monotone"
               dataKey="Estimación"
@@ -119,13 +116,17 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               activeDot={{ r: 4, fill: COLOR_ANALYTICS }}
               connectNulls
             />
-            {/* Realidad: no conecta nulls — la línea termina en el último día confirmado */}
+            {/*
+              Realidad: SIN fill para no tapar las proyecciones de abajo.
+              Es una línea verde sólida que el usuario compara visualmente
+              contra Estimación y Piso — ¿estoy por encima? ¿cerca del piso?
+            */}
             <Area
               type="monotone"
               dataKey="Realidad"
               stroke={COLOR_INCOME}
               strokeWidth={2.5}
-              fill="url(#gReal)"
+              fill="none"
               dot={false}
               activeDot={{ r: 5, fill: COLOR_INCOME }}
               connectNulls={false}
