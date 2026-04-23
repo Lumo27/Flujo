@@ -14,10 +14,7 @@
   body {
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    background:
-      radial-gradient(900px 700px at 75% -10%, rgba(59, 130, 246, 0.055), transparent),
-      radial-gradient(600px 500px at -5% 105%, rgba(30, 64, 175, 0.045), transparent),
-      #0b1220;
+    background: #0b1220;
     color: #e5e7eb;
   }
 
