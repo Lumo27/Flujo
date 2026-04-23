@@ -1,12 +1,18 @@
-# Flujo
+<div align="center">
 
-> Proyectá, controlá y anticipá tu dinero del mes.
+<img src="./public/favicon.svg" width="72" height="72" alt="Flujo logo" />
 
-**Flujo** es una app web personal para visualizar tu flujo de dinero en el tiempo. No es un tracker retrospectivo de gastos: su foco es **saber cómo va a evolucionar tu saldo hacia adelante**, separando lo que ya pasó de lo que todavía es una estimación.
+## Flujo
+
+**Proyectá, controlá y anticipá tu dinero del mes.**
+
+</div>
+
+---
+
+**Flujo** es una app web personal para visualizar el flujo de dinero en el tiempo. No es un tracker retrospectivo de gastos: su foco es **saber cómo va a evolucionar tu saldo hacia adelante**, separando lo que ya pasó de lo que todavía es una estimación.
 
 Cargás tus ingresos y pagos esperados del mes, Flujo proyecta tu saldo día a día, te muestra el peor escenario posible, y a medida que pasa el mes confirmás los movimientos con su monto real.
-
-![dark mode fintech style](./public/favicon.svg)
 
 ---
 
@@ -52,7 +58,7 @@ src/
 │   └── layout/      # AppLayout con sidebar desktop + bottom nav mobile
 ├── features/
 │   ├── dashboard/   # BalanceCard, MonthSummary, ProjectionCard, CashflowChart, UpcomingList
-│   ├── transactions/# Lista, item, filtro, modal de creación
+│   ├── transactions/# Lista, item, filtro, modal de creación y edición
 │   └── calendar/    # MonthCalendar con saldo proyectado por día
 ├── store/           # Zustand + persist (única fuente de verdad)
 ├── lib/             # format, date, calc, cn, id (utilidades puras)
@@ -61,17 +67,17 @@ src/
 └── pages/           # Dashboard, Transactions, Calendar
 ```
 
-## 🎯 Pantallas (MVP)
+## 🎯 Pantallas
 
 - **Dashboard** — saldo actual, ingresos/gastos del mes, proyección a fin de mes, piso proyectado, gráfico, próximos 14 días.
-- **Movimientos** — lista agrupada por día, filtro por tipo/pendientes, confirmar con monto real.
+- **Movimientos** — lista agrupada por día, filtro por tipo/pendientes, crear, editar y confirmar con monto real.
 - **Calendario** — grilla mensual con dots por día y saldo proyectado.
 
 ## 🎨 Decisiones de diseño
 
 - **Dark mode único** para mantener foco y consistencia.
 - **Mobile-first**: bottom nav en mobile, sidebar en desktop.
-- **Color como información**: verde ingreso, rojo gasto, violeta proyección, ámbar peor escenario / pendiente.
+- **Color como información**: azul para acciones, verde ingreso, rojo gasto, violeta proyección, ámbar pendiente.
 - **Cards bien marcadas** con borde sutil + sombra suave.
 
 ## 💾 Datos
@@ -80,7 +86,6 @@ Se persisten en `localStorage` bajo la clave `flujo:v1`. La primera vez que abr�
 
 ## 🗺️ Roadmap (post-MVP)
 
-- Edición inline de movimientos.
 - Recurrencia ("cada 1° del mes").
 - Comparativa mes a mes.
 - Export / import JSON.
@@ -94,4 +99,8 @@ Ver [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) para las decisiones completas de 
 
 ---
 
+<div align="center">
+
 Hecho con foco en claridad, estética y control financiero personal.
+
+</div>

@@ -101,11 +101,11 @@ export function AppLayout() {
 function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-hover shadow-[0_4px_12px_-4px_rgba(59,130,246,0.7)]">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M4 18c3-1 5-3 7-6s4-5 7-6" />
-          <circle cx="4" cy="18" r="1.5" fill="white" stroke="none" />
-          <circle cx="18" cy="6" r="1.5" fill="white" stroke="none" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] shadow-[0_4px_12px_-4px_rgba(59,130,246,0.7)]">
+        <svg viewBox="0 0 64 64" width="18" height="18" fill="none">
+          <path d="M14 46c8-2 13-8 18-16s10-13 18-16" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+          <circle cx="14" cy="46" r="4" fill="white"/>
+          <circle cx="50" cy="14" r="4" fill="white"/>
         </svg>
       </div>
       <span className="text-base font-semibold tracking-tight text-text">Flujo</span>
