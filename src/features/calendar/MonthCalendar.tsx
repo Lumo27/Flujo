@@ -58,12 +58,12 @@ export function MonthCalendar({ transactions, projection }: Props) {
             <ChevronRight size={18} />
           </button>
         </div>
-        <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted">
+        <div className="mb-1.5 grid grid-cols-7 gap-1.5 text-center text-[10px] font-medium text-muted">
           {weekDays.map((d, i) => (
             <div key={i}>{d}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {days.map((d) => {
             const iso = toISO(d);
             const inMonth = isSameMonth(d, ref);
@@ -83,8 +83,8 @@ export function MonthCalendar({ transactions, projection }: Props) {
                   'border',
                   isSel
                     ? 'border-primary bg-primary-soft'
-                    : 'border-transparent hover:border-border hover:bg-surface-2',
-                  !inMonth && 'opacity-35',
+                    : 'border-border/50 bg-surface-2/30 hover:border-border hover:bg-surface-2',
+                  !inMonth && 'opacity-25',
                 )}
               >
                 <span

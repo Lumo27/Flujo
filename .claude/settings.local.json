@@ -15,7 +15,8 @@
       "Bash(git push *)",
       "Bash(git config *)",
       "Bash(git -c user.name=\"Lucas\" -c user.email=\"116810958+Lumo27@users.noreply.github.com\" commit --amend --reset-author --no-edit)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git tag *)"
     ]
   }
 }

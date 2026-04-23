@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Check, Trash2, Undo2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { Transaction, CATEGORY_LABELS } from '@/types/transaction';
 import { Badge } from '@/components/ui/Badge';
 import { formatCurrency, formatDateShort } from '@/lib/format';
@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Input';
+import { TransactionFormModal } from './TransactionFormModal';
 
 export function TransactionItem({ t }: { t: Transaction }) {
   const confirmTransaction = useTransactionsStore((s) => s.confirmTransaction);
@@ -14,6 +15,7 @@ export function TransactionItem({ t }: { t: Transaction }) {
   const removeTransaction = useTransactionsStore((s) => s.removeTransaction);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [actual, setActual] = useState(String(t.estimatedAmount));
 
   const isIncome = t.type === 'income';
@@ -50,7 +52,6 @@ export function TransactionItem({ t }: { t: Transaction }) {
           </span>
           {delta !== 0 && (
             <span className={`text-[11px] ${delta > 0 ? 'text-income' : 'text-expense'}`}>
-              {delta > 0 ? '+' : ''}
               {formatCurrency(delta, { sign: true })} vs est.
             </span>
           )}
@@ -71,21 +72,33 @@ export function TransactionItem({ t }: { t: Transaction }) {
               onClick={() => unconfirmTransaction(t.id)}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
               aria-label="Deshacer confirmación"
-              title="Deshacer"
+              title="Deshacer confirmación"
             >
               <Undo2 size={16} />
             </button>
           )}
+
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-primary"
+            aria-label="Editar"
+            title="Editar movimiento"
+          >
+            <Pencil size={15} />
+          </button>
+
           <button
             onClick={() => removeTransaction(t.id)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-expense"
             aria-label="Eliminar"
+            title="Eliminar movimiento"
           >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
+      {/* Modal confirmar con monto real */}
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -117,6 +130,13 @@ export function TransactionItem({ t }: { t: Transaction }) {
           </div>
         </form>
       </Modal>
+
+      {/* Modal editar — reutiliza TransactionFormModal en modo edición */}
+      <TransactionFormModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        transaction={t}
+      />
     </>
   );
 }
