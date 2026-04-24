@@ -1,159 +1,206 @@
 import { useEffect, useState } from 'react';
+import { addMonths, isSameMonth, isToday } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
-import { DEFAULT_PROJECTION_SETTINGS } from '@/lib/calc';
 import { formatCurrency } from '@/lib/format';
+import { calendarGrid, monthLabel, todayISO, toISO } from '@/lib/date';
+import { cn } from '@/lib/cn';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
 export function ProjectionSettingsModal({ open, onClose }: Props) {
   const stored = useTransactionsStore((s) => s.settings.projectionSettings);
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
 
-  const [salary, setSalary] = useState(String(stored.salaryAmount));
-  const [tipsEst, setTipsEst] = useState(String(stored.tipsEstimated));
-  const [tipsWorst, setTipsWorst] = useState(String(stored.tipsWorst));
+  const [estimated, setEstimated] = useState('');
+  const [worst, setWorst] = useState('');
+  const [workDays, setWorkDays] = useState<string[]>([]);
+  const [calMonth, setCalMonth] = useState(new Date());
 
-  // Re-sync local state each time the modal opens
   useEffect(() => {
-    if (open) {
-      setSalary(String(stored.salaryAmount));
-      setTipsEst(String(stored.tipsEstimated));
-      setTipsWorst(String(stored.tipsWorst));
-    }
-  }, [open, stored.salaryAmount, stored.tipsEstimated, stored.tipsWorst]);
+    if (!open) return;
+    setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
+    setWorst(stored.worstMonthlyIncome ? String(stored.worstMonthlyIncome) : '');
+    setWorkDays(stored.workDays ?? []);
+    setCalMonth(new Date());
+  }, [open, stored]);
+
+  function toggleDay(iso: string) {
+    setWorkDays((prev) =>
+      prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort(),
+    );
+  }
 
   const handleSave = () => {
     setProjectionSettings({
-      salaryAmount: parseFloat(salary) || 0,
-      tipsEstimated: parseFloat(tipsEst) || 0,
-      tipsWorst: parseFloat(tipsWorst) || 0,
+      estimatedMonthlyIncome: parseFloat(estimated) || 0,
+      worstMonthlyIncome: parseFloat(worst) || 0,
+      workDays,
     });
     onClose();
   };
 
-  const handleReset = () => {
-    setSalary(String(DEFAULT_PROJECTION_SETTINGS.salaryAmount));
-    setTipsEst(String(DEFAULT_PROJECTION_SETTINGS.tipsEstimated));
-    setTipsWorst(String(DEFAULT_PROJECTION_SETTINGS.tipsWorst));
-  };
+  const estNum = parseFloat(estimated) || 0;
+  const worstNum = parseFloat(worst) || 0;
+  const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
+  const totalWorkDays = workDays.length;
 
-  const previewEst = (parseFloat(salary) || 0) + (parseFloat(tipsEst) || 0);
-  const previewWorst = (parseFloat(salary) || 0) + (parseFloat(tipsWorst) || 0);
+  const calDays = calendarGrid(calMonth);
 
   return (
-    <Modal open={open} onClose={onClose} title="Parámetros de proyección">
-      <p className="mb-5 text-sm text-muted">
-        Estos valores se usan para proyectar las líneas de{' '}
-        <span className="font-medium text-analytics">Estimación</span> y{' '}
-        <span className="font-medium text-warning">Piso</span> en transacciones pendientes
-        de sueldo y propinas.
+    <Modal open={open} onClose={onClose} title="Metas del mes">
+      <p className="mb-4 text-sm text-muted">
+        Definí cuánto esperás ganar en cada escenario y marcá los días que vas a trabajar.
+        Esos montos se van a distribuir equitativamente entre tus días de trabajo.
       </p>
 
-      <div className="space-y-4">
+      {/* Montos */}
+      <div className="grid grid-cols-2 gap-3">
         <FieldGroup
-          label="Sueldo por turno"
-          hint="Monto fijo que ganás por cada turno de trabajo"
-          value={salary}
-          onChange={setSalary}
-          placeholder="45000"
+          label="Estimación"
+          hint="Meta normal del mes"
+          value={estimated}
+          onChange={setEstimated}
+          placeholder="1200000"
+          accent="analytics"
         />
         <FieldGroup
-          label="Propinas — Estimación"
-          hint="Monto promedio esperado de propinas por turno"
-          value={tipsEst}
-          onChange={setTipsEst}
-          placeholder="100000"
-        />
-        <FieldGroup
-          label="Propinas — Piso"
-          hint="Mínimo garantizado de propinas (peor escenario)"
-          value={tipsWorst}
-          onChange={setTipsWorst}
-          placeholder="70000"
+          label="Piso del mes"
+          hint="Peor escenario posible"
+          value={worst}
+          onChange={setWorst}
+          placeholder="800000"
           accent="warning"
         />
       </div>
 
-      {/* Preview */}
-      <div className="mt-5 rounded-xl border border-border bg-surface-2/50 p-3">
-        <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted">
-          Vista previa — ingreso total por turno
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <p className="text-muted">Estimación</p>
-            <p className="font-semibold text-analytics">{formatCurrency(previewEst)}</p>
+      {/* Calendario de días de trabajo */}
+      <div className="mt-4">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-sm font-medium text-text">Días que vas a trabajar</span>
+          <span className="text-[11px] text-muted">
+            {totalWorkDays === 0
+              ? 'Ningún día seleccionado'
+              : `${totalWorkDays} día${totalWorkDays !== 1 ? 's' : ''}`}
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-border bg-surface-2/50 p-2">
+          {/* Navegación de mes */}
+          <div className="mb-2 flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={() => setCalMonth(addMonths(calMonth, -1))}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-xs font-semibold capitalize text-text">
+              {monthLabel(calMonth)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCalMonth(addMonths(calMonth, 1))}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
-          <div>
-            <p className="text-muted">Piso</p>
-            <p className="font-semibold text-warning">{formatCurrency(previewWorst)}</p>
+
+          {/* Header días */}
+          <div className="mb-1 grid grid-cols-7 text-center">
+            {WEEKDAYS.map((d, i) => (
+              <span key={i} className="text-[10px] font-medium text-muted">{d}</span>
+            ))}
+          </div>
+
+          {/* Grilla */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {calDays.map((d) => {
+              const iso = toISO(d);
+              const inMonth = isSameMonth(d, calMonth);
+              const sel = workDays.includes(iso);
+              const today = isToday(d);
+
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  disabled={!inMonth}
+                  onClick={() => toggleDay(iso)}
+                  className={cn(
+                    'flex h-8 w-full items-center justify-center rounded-lg text-xs font-medium transition-colors',
+                    !inMonth && 'opacity-0 pointer-events-none',
+                    inMonth && sel && 'bg-analytics text-white',
+                    inMonth && !sel && today && 'border border-analytics text-analytics hover:bg-analytics/10',
+                    inMonth && !sel && !today && 'text-muted hover:bg-surface-2 hover:text-text',
+                  )}
+                >
+                  {d.getDate()}
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {n > 0 && (estNum > 0 || worstNum > 0) && (
+          <p className="mt-1.5 text-[11px] text-muted">
+            {n} día{n !== 1 ? 's' : ''} en este mes
+            {estNum > 0 && (
+              <> · <span className="text-analytics">{formatCurrency(Math.round(estNum / n))}/día est.</span></>
+            )}
+            {worstNum > 0 && (
+              <> · <span className="text-warning">{formatCurrency(Math.round(worstNum / n))}/día piso</span></>
+            )}
+          </p>
+        )}
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-5 flex justify-end gap-2">
         <button
-          onClick={handleReset}
-          className="text-xs text-muted transition-colors hover:text-text"
+          onClick={onClose}
+          className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
         >
-          Valores por defecto
+          Cancelar
         </button>
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-text"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-[0_4px_12px_-4px_rgba(59,130,246,0.5)] transition-colors hover:bg-primary-hover"
-          >
-            Guardar
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-[0_4px_12px_-4px_rgba(59,130,246,0.5)] transition-colors hover:bg-primary-hover"
+        >
+          Guardar
+        </button>
       </div>
     </Modal>
   );
 }
 
 function FieldGroup({
-  label,
-  hint,
-  value,
-  onChange,
-  placeholder,
-  accent = 'default',
+  label, hint, value, onChange, placeholder, accent,
 }: {
   label: string;
   hint: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
-  accent?: 'warning' | 'default';
+  accent: 'analytics' | 'warning';
 }) {
-  const focusRing =
-    accent === 'warning'
-      ? 'focus:border-warning focus:ring-warning/20'
-      : 'focus:border-primary focus:ring-primary/20';
+  const focusRing = accent === 'warning'
+    ? 'focus:border-warning focus:ring-warning/20'
+    : 'focus:border-primary focus:ring-primary/20';
+  const labelColor = accent === 'warning' ? 'text-warning' : 'text-analytics';
 
   return (
     <div>
-      <label className="block text-sm font-medium text-text">
-        {label}
-        {accent === 'warning' && (
-          <span className="ml-1.5 text-[11px] font-normal text-warning">(piso)</span>
-        )}
-      </label>
+      <label className={`block text-sm font-medium ${labelColor}`}>{label}</label>
       <p className="mt-0.5 text-[11px] text-muted">{hint}</p>
       <div className="relative mt-1.5">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">
-          $
-        </span>
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
         <input
           type="number"
           min="0"

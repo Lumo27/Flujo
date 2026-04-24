@@ -36,7 +36,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
-  const [minAmount, setMinAmount] = useState('');
   const [variability, setVariability] = useState<Variability>('fixed');
   const [category, setCategory] = useState<TransactionCategory>('other');
   const [note, setNote] = useState('');
@@ -56,7 +55,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setType(transaction.type);
       setTitle(transaction.title);
       setAmount(String(transaction.estimatedAmount));
-      setMinAmount(transaction.minAmount ? String(transaction.minAmount) : '');
       setVariability(transaction.variability);
       setCategory(transaction.category);
       setDate(transaction.date);
@@ -65,7 +63,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setType('expense');
       setTitle('');
       setAmount('');
-      setMinAmount('');
       setVariability('fixed');
       setCategory('other');
       setNote('');
@@ -96,11 +93,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
     if (!title.trim()) return setError('Poné un nombre al movimiento.');
     if (!Number.isFinite(num) || num <= 0) return setError('El monto tiene que ser mayor a 0.');
 
-    const min =
-      variability === 'variable' && type === 'income' && minAmount
-        ? Number(minAmount) || undefined
-        : undefined;
-
     if (isEdit && transaction) {
       updateTransaction(transaction.id, {
         type,
@@ -110,7 +102,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
         note: note.trim() || undefined,
         date,
         estimatedAmount: num,
-        minAmount: min,
       });
     } else {
       // Crear una transacción por cada fecha seleccionada
@@ -127,7 +118,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
           note: note.trim() || undefined,
           date: d,
           estimatedAmount: num,
-          minAmount: min,
         })),
       );
     }
@@ -296,20 +286,6 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
             </Select>
           </Field>
         </div>
-
-        {variability === 'variable' && type === 'income' && (
-          <Field
-            label="Piso conservador (peor escenario)"
-            hint="Se usa para calcular tu saldo mínimo proyectado."
-          >
-            <Input
-              inputMode="numeric"
-              value={minAmount}
-              onChange={(e) => setMinAmount(e.target.value.replace(/[^\d]/g, ''))}
-              placeholder="0"
-            />
-          </Field>
-        )}
 
         <Field label="Nota (opcional)">
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Detalle" />
