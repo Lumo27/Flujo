@@ -5,6 +5,7 @@ import { TransactionList } from '@/features/transactions/TransactionList';
 import { FilterValue, TypeFilter } from '@/features/transactions/TypeFilter';
 import { Button } from '@/components/ui/Button';
 import { TransactionFormModal } from '@/features/transactions/TransactionFormModal';
+import { DataToolsCard } from '@/features/settings/DataToolsCard';
 
 export function TransactionsPage() {
   const transactions = useTransactionsStore((s) => s.transactions);
@@ -50,6 +51,8 @@ export function TransactionsPage() {
       />
 
       <TransactionFormModal open={open} onClose={() => setOpen(false)} />
+
+      <DataToolsCard />
     </div>
   );
 }
