@@ -10,7 +10,7 @@ interface Settings {
   startingBalance: number;
   /** Whether the user has completed the initial seed / onboarding. */
   seeded: boolean;
-  /** Global income parameters used for projection lines. */
+  /** Two numbers: expected income and worst-case income for the month. */
   projectionSettings: ProjectionSettings;
 }
 
@@ -100,15 +100,27 @@ export const useTransactionsStore = create<TransactionsState>()(
           },
         })),
 
-      resetToSeed: () =>
+      resetToSeed: () => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        const day = (n: number) => {
+          const d = new Date(y, m, n);
+          return `${y}-${String(m + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
         set({
           transactions: buildSeed(),
           settings: {
             startingBalance: 40_000,
             seeded: true,
-            projectionSettings: { salaryAmount: 45_000, tipsEstimated: 145_000, tipsWorst: 85_000 },
+            projectionSettings: {
+              estimatedMonthlyIncome: 1_520_000,
+              worstMonthlyIncome: 1_040_000,
+              workDays: [day(5), day(6), day(12), day(13), day(19), day(20), day(24), day(25)],
+            },
           },
-        }),
+        });
+      },
 
       clearAll: () =>
         set({
@@ -122,9 +134,9 @@ export const useTransactionsStore = create<TransactionsState>()(
     }),
     {
       name: PERSIST_KEY,
-      version: 4,
+      version: 6,
       migrate(_persistedState, fromVersion) {
-        if (fromVersion < 4) {
+        if (fromVersion < 6) {
           return {
             transactions: [],
             settings: {

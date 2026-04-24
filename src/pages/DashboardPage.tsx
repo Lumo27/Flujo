@@ -6,7 +6,7 @@ import { ProjectionCard } from '@/features/dashboard/ProjectionCard';
 import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
 import { ProjectionSettingsModal } from '@/features/dashboard/ProjectionSettingsModal';
-import { currentBalance, monthIncomeProjection, monthSummary, projectMonth, upcoming } from '@/lib/calc';
+import { currentBalance, projectIncomeByDay, monthIncomeProjection, monthSummary, upcoming } from '@/lib/calc';
 import { SlidersHorizontal } from 'lucide-react';
 
 export function DashboardPage() {
@@ -22,10 +22,13 @@ export function DashboardPage() {
     [transactions, startingBalance],
   );
   const summary = useMemo(() => monthSummary(transactions, now), [transactions, now]);
-  const points = useMemo(
-    () => projectMonth(transactions, now, startingBalance, projectionSettings),
-    [transactions, now, startingBalance, projectionSettings],
+  const incomePoints = useMemo(
+    () => projectIncomeByDay(transactions, now, projectionSettings),
+    [transactions, now, projectionSettings],
   );
+  const hasProjection =
+    projectionSettings.workDays.length > 0 &&
+    (projectionSettings.estimatedMonthlyIncome > 0 || projectionSettings.worstMonthlyIncome > 0);
   const incomeProjection = useMemo(
     () => monthIncomeProjection(transactions, now, projectionSettings),
     [transactions, now, projectionSettings],
@@ -39,13 +42,13 @@ export function DashboardPage() {
           <p className="text-xs font-medium uppercase tracking-wider text-muted">Dashboard</p>
           <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Tu flujo del mes</h1>
           <p className="mt-1 text-sm text-muted">
-            Saldo real, proyección estimada y piso garantizado — de un vistazo.
+            Ingresos confirmados, meta estimada y piso del mes — de un vistazo.
           </p>
         </div>
         <button
           onClick={() => setSettingsOpen(true)}
           className="mt-1 flex shrink-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:bg-primary-soft hover:text-primary"
-          title="Modificar parámetros de proyección"
+          title="Configurar metas del mes"
         >
           <SlidersHorizontal size={14} />
           <span className="hidden sm:inline">Proyecciones</span>
@@ -57,7 +60,7 @@ export function DashboardPage() {
       <ProjectionCard income={incomeProjection} />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:gap-5">
-        <CashflowChart points={points} />
+        <CashflowChart points={incomePoints} hasProjection={hasProjection} />
         <UpcomingList items={next} />
       </div>
 

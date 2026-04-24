@@ -1,78 +1,33 @@
 import { Transaction } from '@/types/transaction';
-import { fromISO, isInMonth, toISO } from './date';
+import { isInMonth, toISO } from './date';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProjectionSettings {
-  /** Fixed amount earned per salary shift. */
-  salaryAmount: number;
-  /** Average / normal tips amount. Used for the "Estimación" line. */
-  tipsEstimated: number;
-  /** Absolute minimum tips. Used for the "Piso" line. */
-  tipsWorst: number;
+  /** Total income you expect to earn this month — your normal scenario. */
+  estimatedMonthlyIncome: number;
+  /** Total income in the worst case — if everything goes wrong. */
+  worstMonthlyIncome: number;
+  /**
+   * ISO dates of the days you plan to work this month.
+   * The monthly totals are divided equally across these days to build
+   * the Est / Piso step-function lines in the chart.
+   */
+  workDays: string[];
 }
 
 export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
-  salaryAmount: 45000,
-  tipsEstimated: 100000,
-  tipsWorst: 70000,
+  estimatedMonthlyIncome: 0,
+  worstMonthlyIncome: 0,
+  workDays: [],
 };
-
-export interface ProjectionPoint {
-  date: string;
-  /** Only confirmed transactions. Null for future dates (line stops at today). */
-  actual: number | null;
-  /** Confirmed actual + pending using average income params. Full month. */
-  estimated: number;
-  /** Confirmed actual + pending using worst-case income params. Full month. */
-  worst: number;
-}
-
-export interface MinBalancePoint {
-  date: string;
-  amount: number;
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Signed delta of a confirmed transaction using its real amount. */
 function confirmedDelta(t: Transaction): number {
   if (t.status !== 'confirmed') return 0;
   const amount = t.actualAmount ?? t.estimatedAmount;
   return t.type === 'income' ? amount : -amount;
-}
-
-/**
- * Signed delta for a projected line (Estimación or Piso).
- * Applies to ALL transactions regardless of confirmed/pending status —
- * the projection lines always use estimated/worst amounts so they stay
- * visually distinct from Realidad (which uses actual confirmed amounts).
- *
- * - Expenses        → always uses estimatedAmount
- * - Salary category → uses global salaryAmount
- * - Tips category   → uses tipsEstimated or tipsWorst depending on mode
- * - Other income    → uses per-transaction estimatedAmount / minAmount
- */
-function projectedDelta(
-  t: Transaction,
-  mode: 'estimated' | 'worst',
-  settings: ProjectionSettings,
-): number {
-  if (t.type === 'expense') return -t.estimatedAmount;
-
-  // Income — check category for global overrides
-  let amount: number;
-  if (t.category === 'salary') {
-    amount = settings.salaryAmount;
-  } else if (t.category === 'tips') {
-    amount = mode === 'worst' ? settings.tipsWorst : settings.tipsEstimated;
-  } else {
-    amount =
-      mode === 'worst' && t.variability === 'variable' && t.minAmount != null
-        ? t.minAmount
-        : t.estimatedAmount;
-  }
-  return amount;
 }
 
 // ─── Public calculations ──────────────────────────────────────────────────────
@@ -114,117 +69,101 @@ export function monthSummary(transactions: Transaction[], ref: Date): MonthSumma
 }
 
 /**
- * Three-line projection for the month:
- * - actual:    solo transacciones confirmadas con monto real. Null para fechas futuras.
- * - estimated: proyección completa del mes usando montos estimados para TODAS las transacciones.
- * - worst:     proyección completa del mes usando montos mínimos para TODAS las transacciones.
+ * Three-line projection for the chart:
  *
- * Estimación y Piso usan montos proyectados incluso para transacciones confirmadas,
- * de modo que las tres líneas divergen a lo largo de todo el mes:
- *   - Realidad por encima de Estimación → mejores propinas de lo esperado.
- *   - Realidad por debajo de Piso       → peor que el peor escenario, hay que ajustar.
+ * - actual:    cumulative confirmed income. Null for future dates (line stops at today).
+ * - estimated: cumulative income at the estimated scenario, stepping up on each work day.
+ * - worst:     cumulative income at the worst-case scenario, stepping up on each work day.
+ *
+ * Est / Piso are null for all days if no work days are configured.
  */
-export function projectMonth(
+export interface IncomePoint {
+  date: string;
+  actual: number | null;
+  estimated: number | null;
+  worst: number | null;
+}
+
+export function projectIncomeByDay(
   transactions: Transaction[],
   ref: Date,
-  startingBalance: number,
-  settings: ProjectionSettings = DEFAULT_PROJECTION_SETTINGS,
-): ProjectionPoint[] {
+  settings: ProjectionSettings,
+): IncomePoint[] {
   const today = toISO(new Date());
   const year = ref.getFullYear();
   const month = ref.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+  // Confirmed income by day
   const byDay: Record<string, Transaction[]> = {};
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
+    if (t.type !== 'income') continue;
     (byDay[t.date] ||= []).push(t);
   }
 
-  let runActual = startingBalance;
-  let runEst = startingBalance;
-  let runWorst = startingBalance;
-  const points: ProjectionPoint[] = [];
+  // Work days for this specific month
+  const workDaysThisMonth = settings.workDays
+    .filter((d) => isInMonth(d, ref))
+    .sort();
+
+  const n = workDaysThisMonth.length;
+  const hasProjection = n > 0 && (settings.estimatedMonthlyIncome > 0 || settings.worstMonthlyIncome > 0);
+  const perDayEst = hasProjection ? settings.estimatedMonthlyIncome / n : 0;
+  const perDayWorst = hasProjection ? settings.worstMonthlyIncome / n : 0;
+
+  let runActual = 0;
+  let runEst = 0;
+  let runWorst = 0;
+  const points: IncomePoint[] = [];
 
   for (let day = 1; day <= daysInMonth; day++) {
     const iso = toISO(new Date(year, month, day));
     const items = byDay[iso] ?? [];
 
     for (const t of items) {
-      // Realidad: solo confirmadas con monto real
       if (t.status === 'confirmed') {
-        runActual += confirmedDelta(t);
+        runActual += t.actualAmount ?? t.estimatedAmount;
       }
+    }
 
-      // Estimación y Piso: proyectan TODAS las transacciones del mes
-      // con sus montos estimados/mínimos (ignoran si está confirmada o no).
-      // Esto hace que las tres líneas sean visualmente distintas en todo el mes.
-      runEst += projectedDelta(t, 'estimated', settings);
-      runWorst += projectedDelta(t, 'worst', settings);
+    if (hasProjection && workDaysThisMonth.includes(iso)) {
+      runEst += perDayEst;
+      runWorst += perDayWorst;
     }
 
     points.push({
       date: iso,
       actual: iso <= today ? runActual : null,
-      estimated: runEst,
-      worst: runWorst,
+      estimated: hasProjection ? Math.round(runEst) : null,
+      worst: hasProjection ? Math.round(runWorst) : null,
     });
   }
 
   return points;
 }
 
-export function worstCaseFloor(points: ProjectionPoint[]): MinBalancePoint | null {
-  if (points.length === 0) return null;
-  let min = points[0];
-  for (const p of points) if (p.worst < min.worst) min = p;
-  return { date: min.date, amount: min.worst };
-}
-
-export function endOfMonthProjection(points: ProjectionPoint[]): {
-  actual: number | null;
-  estimated: number;
-  worst: number;
-} {
-  if (points.length === 0) return { actual: null, estimated: 0, worst: 0 };
-  const last = points[points.length - 1];
-  // Last non-null actual
-  const lastActual = [...points].reverse().find((p) => p.actual !== null)?.actual ?? null;
-  return { actual: lastActual, estimated: last.estimated, worst: last.worst };
-}
-
 /**
- * Gross income totals for the month — expenses are NOT subtracted.
- *
- * - actual:    sum of confirmed income transactions (real amounts).
- * - estimated: all income transactions at estimated/average params.
- * - worst:     all income transactions at worst-case params.
- *
- * Use this to answer "how much will I earn this month?" in each scenario,
- * letting the user mentally subtract their known fixed expenses.
+ * Income totals for the month across 3 scenarios (for the summary cards).
+ * actual = confirmed income so far.
+ * estimated / worst = the configured monthly targets.
  */
 export function monthIncomeProjection(
   transactions: Transaction[],
   ref: Date,
-  settings: ProjectionSettings = DEFAULT_PROJECTION_SETTINGS,
+  settings: ProjectionSettings,
 ): { actual: number; estimated: number; worst: number } {
   let actual = 0;
-  let estimated = 0;
-  let worst = 0;
-
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
-    if (t.type !== 'income') continue;
-
-    if (t.status === 'confirmed') {
-      actual += t.actualAmount ?? t.estimatedAmount;
-    }
-
-    estimated += projectedDelta(t, 'estimated', settings);
-    worst += projectedDelta(t, 'worst', settings);
+    if (t.type !== 'income' || t.status !== 'confirmed') continue;
+    actual += t.actualAmount ?? t.estimatedAmount;
   }
-
-  return { actual, estimated, worst };
+  return {
+    actual,
+    estimated: settings.estimatedMonthlyIncome,
+    worst: settings.worstMonthlyIncome,
+  };
 }
 
 export function upcoming(transactions: Transaction[], days = 14): Transaction[] {
@@ -235,7 +174,7 @@ export function upcoming(transactions: Transaction[], days = 14): Transaction[] 
   return transactions
     .filter((t) => t.status === 'pending')
     .filter((t) => {
-      const d = fromISO(t.date);
+      const d = new Date(t.date + 'T00:00:00');
       return d >= now && d <= horizon;
     })
     .sort((a, b) => a.date.localeCompare(b.date));

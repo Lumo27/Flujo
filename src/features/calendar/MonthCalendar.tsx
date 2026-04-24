@@ -4,28 +4,21 @@ import { addMonths, isSameMonth, isToday } from 'date-fns';
 import { Transaction } from '@/types/transaction';
 import { calendarGrid, monthLabel, toISO } from '@/lib/date';
 import { cn } from '@/lib/cn';
-import { formatCompact, formatCurrency, formatDateLong } from '@/lib/format';
+import { formatDateLong } from '@/lib/format';
 import { Card } from '@/components/ui/Card';
-import { ProjectionPoint } from '@/lib/calc';
 import { TransactionList } from '@/features/transactions/TransactionList';
 
 interface Props {
   transactions: Transaction[];
-  projection: ProjectionPoint[];
 }
 
 const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-export function MonthCalendar({ transactions, projection }: Props) {
+export function MonthCalendar({ transactions }: Props) {
   const [ref, setRef] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(toISO(new Date()));
 
   const days = useMemo(() => calendarGrid(ref), [ref]);
-  const projByDate = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of projection) m.set(p.date, p.estimated);
-    return m;
-  }, [projection]);
 
   const byDate = useMemo(() => {
     const m = new Map<string, Transaction[]>();
@@ -71,7 +64,6 @@ export function MonthCalendar({ transactions, projection }: Props) {
             const hasIncome = items.some((x) => x.type === 'income');
             const hasExpense = items.some((x) => x.type === 'expense');
             const hasPending = items.some((x) => x.status === 'pending');
-            const proj = projByDate.get(iso);
             const isSel = selected === iso;
 
             return (
@@ -102,11 +94,6 @@ export function MonthCalendar({ transactions, projection }: Props) {
                     {hasPending && <span className="h-1.5 w-1.5 rounded-full bg-warning" />}
                   </div>
                 )}
-                {proj != null && inMonth && items.length > 0 && (
-                  <span className="hidden text-[10px] text-muted sm:block">
-                    {formatCompact(proj)}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -124,11 +111,6 @@ export function MonthCalendar({ transactions, projection }: Props) {
           <h3 className="text-base font-semibold capitalize">
             {selected ? formatDateLong(selected) : '—'}
           </h3>
-          {selected && projByDate.get(selected) != null && selectedItems.length > 0 && (
-            <p className="mt-1 text-xs text-muted">
-              Saldo proyectado: {formatCurrency(projByDate.get(selected)!)}
-            </p>
-          )}
         </div>
         <TransactionList
           transactions={selectedItems}

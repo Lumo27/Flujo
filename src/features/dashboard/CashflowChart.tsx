@@ -7,43 +7,54 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ProjectionPoint } from '@/lib/calc';
+import { IncomePoint } from '@/lib/calc';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { LineChart as LineIcon } from 'lucide-react';
 import { formatCompact, formatCurrency, formatDateShort } from '@/lib/format';
 
-const COLOR_INCOME = '#22c55e';    // Realidad — verde
+const COLOR_INCOME    = '#22c55e'; // Realidad — verde
 const COLOR_ANALYTICS = '#8b5cf6'; // Estimación — violeta
-const COLOR_WARNING = '#f59e0b';   // Piso — naranja
+const COLOR_WARNING   = '#f59e0b'; // Piso — naranja
 const THEME = {
   grid: '#1f2937',
   axis: '#6b7280',
   tooltip: { bg: '#111827', border: '#1f2937' },
 };
 
-export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
+interface Props {
+  points: IncomePoint[];
+  hasProjection: boolean;
+}
+
+export function CashflowChart({ points, hasProjection }: Props) {
   const data = points.map((p) => ({
     date: p.date,
     label: formatDateShort(p.date),
-    Realidad: p.actual !== null ? Math.round(p.actual) : null,
-    Estimación: Math.round(p.estimated),
-    Piso: Math.round(p.worst),
+    Realidad:   p.actual    !== null ? Math.round(p.actual)    : null,
+    Estimación: p.estimated !== null ? Math.round(p.estimated) : null,
+    Piso:       p.worst     !== null ? Math.round(p.worst)     : null,
   }));
+
+  const yMax = Math.max(
+    ...data.map((p) => Math.max(p.Realidad ?? 0, p.Estimación ?? 0, p.Piso ?? 0)),
+    0,
+  );
+  const yDomain: [number, number] = [0, Math.ceil((yMax * 1.1) / 100_000) * 100_000 || 100_000];
 
   return (
     <Card>
       <CardHeader
         icon={<LineIcon size={16} />}
         iconTone="analytics"
-        title="Proyección del mes"
-        subtitle="Realidad confirmada · Estimación · Piso garantizado"
+        title="Ingresos del mes"
+        subtitle="Realidad confirmada vs. tus metas mensuales"
       />
 
       {/* Legend */}
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1">
-        <LegendDot color={COLOR_INCOME} label="Realidad" />
-        <LegendDot color={COLOR_ANALYTICS} label="Estimación" />
-        <LegendDot color={COLOR_WARNING} label="Piso" dashed />
+        <LegendLine color={COLOR_INCOME} label="Realidad" />
+        {hasProjection && <LegendLine color={COLOR_ANALYTICS} label="Estimación" />}
+        {hasProjection && <LegendLine color={COLOR_WARNING} label="Piso" dashed />}
       </div>
 
       <div className="h-56 w-full sm:h-72">
@@ -55,11 +66,11 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
                 <stop offset="85%" stopColor={COLOR_INCOME} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gEst" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLOR_ANALYTICS} stopOpacity={0.25} />
+                <stop offset="0%" stopColor={COLOR_ANALYTICS} stopOpacity={0.2} />
                 <stop offset="85%" stopColor={COLOR_ANALYTICS} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gWorst" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLOR_WARNING} stopOpacity={0.15} />
+                <stop offset="0%" stopColor={COLOR_WARNING} stopOpacity={0.12} />
                 <stop offset="85%" stopColor={COLOR_WARNING} stopOpacity={0} />
               </linearGradient>
             </defs>
@@ -80,6 +91,7 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               tickLine={false}
               axisLine={false}
               width={62}
+              domain={yDomain}
               tickFormatter={(v) => formatCompact(v as number)}
             />
             <Tooltip
@@ -97,31 +109,34 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
               }
             />
 
-            {/* Piso primero (más abajo), luego Estimación, luego Realidad encima */}
+            {/* Piso primero (debajo), luego Estimación, Realidad encima */}
+            {hasProjection && (
+              <Area
+                type="stepAfter"
+                dataKey="Piso"
+                stroke={COLOR_WARNING}
+                strokeWidth={1.5}
+                fill="url(#gWorst)"
+                strokeDasharray="5 3"
+                dot={false}
+                activeDot={{ r: 4, fill: COLOR_WARNING }}
+                connectNulls
+              />
+            )}
+            {hasProjection && (
+              <Area
+                type="stepAfter"
+                dataKey="Estimación"
+                stroke={COLOR_ANALYTICS}
+                strokeWidth={2}
+                fill="url(#gEst)"
+                dot={false}
+                activeDot={{ r: 4, fill: COLOR_ANALYTICS }}
+                connectNulls
+              />
+            )}
             <Area
-              type="monotone"
-              dataKey="Piso"
-              stroke={COLOR_WARNING}
-              strokeWidth={1.5}
-              fill="url(#gWorst)"
-              strokeDasharray="5 3"
-              dot={false}
-              activeDot={{ r: 4, fill: COLOR_WARNING }}
-              connectNulls
-            />
-            <Area
-              type="monotone"
-              dataKey="Estimación"
-              stroke={COLOR_ANALYTICS}
-              strokeWidth={2}
-              fill="url(#gEst)"
-              dot={false}
-              activeDot={{ r: 4, fill: COLOR_ANALYTICS }}
-              connectNulls
-            />
-            {/* Realidad: no conecta nulls — la línea termina en el último día confirmado */}
-            <Area
-              type="monotone"
+              type="stepAfter"
               dataKey="Realidad"
               stroke={COLOR_INCOME}
               strokeWidth={2.5}
@@ -133,27 +148,23 @@ export function CashflowChart({ points }: { points: ProjectionPoint[] }) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {!hasProjection && (
+        <p className="mt-2 text-center text-[11px] text-muted">
+          Configurá tus metas y días de trabajo con el botón{' '}
+          <span className="font-medium text-text">Proyecciones</span>
+        </p>
+      )}
     </Card>
   );
 }
 
-function LegendDot({
-  color,
-  label,
-  dashed,
-}: {
-  color: string;
-  label: string;
-  dashed?: boolean;
-}) {
+function LegendLine({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <svg width="20" height="10">
         <line
-          x1="0"
-          y1="5"
-          x2="20"
-          y2="5"
+          x1="0" y1="5" x2="20" y2="5"
           stroke={color}
           strokeWidth="2"
           strokeDasharray={dashed ? '4 2' : undefined}
