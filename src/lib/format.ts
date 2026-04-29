@@ -1,3 +1,20 @@
+export function formatUSD(value: number, opts?: { sign?: boolean }): string {
+  const abs = Math.abs(value);
+  const str = `U$S ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(abs)}`;
+  if (!opts?.sign) return value < 0 ? `-${str}` : str;
+  if (value > 0) return `+${str}`;
+  if (value < 0) return `-${str}`;
+  return str;
+}
+
+export function formatAmount(
+  value: number,
+  currency: 'ARS' | 'USD' = 'ARS',
+  opts?: { sign?: boolean },
+): string {
+  return currency === 'USD' ? formatUSD(value, opts) : formatCurrency(value, opts);
+}
+
 export function formatCurrency(value: number, opts?: { sign?: boolean }): string {
   const abs = Math.abs(value);
   const formatted = new Intl.NumberFormat('es-AR', {

@@ -15,6 +15,7 @@ export function DashboardPage() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const startingBalance = useTransactionsStore((s) => s.settings.startingBalance);
   const projectionSettings = useTransactionsStore((s) => s.settings.projectionSettings);
+  const blueRate = useTransactionsStore((s) => s.settings.blueRate);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState(new Date());
@@ -23,23 +24,23 @@ export function DashboardPage() {
   const isCurrentMonth = isSameMonth(viewMonth, today);
 
   const balance = useMemo(
-    () => startingBalance + currentBalance(transactions),
-    [transactions, startingBalance],
+    () => startingBalance + currentBalance(transactions, blueRate),
+    [transactions, startingBalance, blueRate],
   );
   const summary = useMemo(
-    () => monthSummary(transactions, viewMonth),
-    [transactions, viewMonth],
+    () => monthSummary(transactions, viewMonth, blueRate),
+    [transactions, viewMonth, blueRate],
   );
   const incomePoints = useMemo(
-    () => projectIncomeByDay(transactions, viewMonth, projectionSettings),
-    [transactions, viewMonth, projectionSettings],
+    () => projectIncomeByDay(transactions, viewMonth, projectionSettings, blueRate),
+    [transactions, viewMonth, projectionSettings, blueRate],
   );
   const hasProjection =
     projectionSettings.workDays.length > 0 &&
     (projectionSettings.estimatedMonthlyIncome > 0 || projectionSettings.worstMonthlyIncome > 0);
   const incomeProjection = useMemo(
-    () => monthIncomeProjection(transactions, viewMonth, projectionSettings),
-    [transactions, viewMonth, projectionSettings],
+    () => monthIncomeProjection(transactions, viewMonth, projectionSettings, blueRate),
+    [transactions, viewMonth, projectionSettings, blueRate],
   );
   const next = useMemo(() => upcoming(transactions, 14), [transactions]);
 

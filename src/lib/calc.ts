@@ -24,20 +24,25 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function confirmedDelta(t: Transaction): number {
+/** Convert a transaction amount to ARS using the blue rate. */
+function toARS(amount: number, t: Transaction, blueRate: number): number {
+  return t.currency === 'USD' ? amount * blueRate : amount;
+}
+
+function confirmedDelta(t: Transaction, blueRate: number): number {
   if (t.status !== 'confirmed') return 0;
-  const amount = t.actualAmount ?? t.estimatedAmount;
+  const amount = toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   return t.type === 'income' ? amount : -amount;
 }
 
 // ─── Public calculations ──────────────────────────────────────────────────────
 
-export function realizedDelta(t: Transaction): number {
-  return confirmedDelta(t);
+export function realizedDelta(t: Transaction, blueRate = 1): number {
+  return confirmedDelta(t, blueRate);
 }
 
-export function currentBalance(transactions: Transaction[]): number {
-  return transactions.reduce((sum, t) => sum + confirmedDelta(t), 0);
+export function currentBalance(transactions: Transaction[], blueRate = 1): number {
+  return transactions.reduce((sum, t) => sum + confirmedDelta(t, blueRate), 0);
 }
 
 export interface MonthSummary {
@@ -47,7 +52,7 @@ export interface MonthSummary {
   expenseEstimated: number;
 }
 
-export function monthSummary(transactions: Transaction[], ref: Date): MonthSummary {
+export function monthSummary(transactions: Transaction[], ref: Date, blueRate = 1): MonthSummary {
   let incomeConfirmed = 0;
   let incomeEstimated = 0;
   let expenseConfirmed = 0;
@@ -55,8 +60,8 @@ export function monthSummary(transactions: Transaction[], ref: Date): MonthSumma
 
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
-    const est = t.estimatedAmount;
-    const act = t.actualAmount ?? t.estimatedAmount;
+    const est = toARS(t.estimatedAmount, t, blueRate);
+    const act = toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
     if (t.type === 'income') {
       incomeEstimated += est;
       if (t.status === 'confirmed') incomeConfirmed += act;
@@ -88,6 +93,7 @@ export function projectIncomeByDay(
   transactions: Transaction[],
   ref: Date,
   settings: ProjectionSettings,
+  blueRate = 1,
 ): IncomePoint[] {
   const today = toISO(new Date());
   const year = ref.getFullYear();
@@ -123,7 +129,7 @@ export function projectIncomeByDay(
 
     for (const t of items) {
       if (t.status === 'confirmed') {
-        runActual += t.actualAmount ?? t.estimatedAmount;
+        runActual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
       }
     }
 
@@ -152,12 +158,13 @@ export function monthIncomeProjection(
   transactions: Transaction[],
   ref: Date,
   settings: ProjectionSettings,
+  blueRate = 1,
 ): { actual: number; estimated: number; worst: number } {
   let actual = 0;
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
     if (t.type !== 'income' || t.status !== 'confirmed') continue;
-    actual += t.actualAmount ?? t.estimatedAmount;
+    actual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   }
   return {
     actual,

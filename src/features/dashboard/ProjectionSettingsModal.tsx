@@ -16,11 +16,14 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export function ProjectionSettingsModal({ open, onClose }: Props) {
   const stored = useTransactionsStore((s) => s.settings.projectionSettings);
+  const storedBlueRate = useTransactionsStore((s) => s.settings.blueRate);
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
+  const setBlueRate = useTransactionsStore((s) => s.setBlueRate);
 
   const [estimated, setEstimated] = useState('');
   const [worst, setWorst] = useState('');
   const [workDays, setWorkDays] = useState<string[]>([]);
+  const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
 
   useEffect(() => {
@@ -28,8 +31,9 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
     setWorst(stored.worstMonthlyIncome ? String(stored.worstMonthlyIncome) : '');
     setWorkDays(stored.workDays ?? []);
+    setBlueRateLocal(storedBlueRate ? String(storedBlueRate) : '');
     setCalMonth(new Date());
-  }, [open, stored]);
+  }, [open, stored, storedBlueRate]);
 
   function toggleDay(iso: string) {
     setWorkDays((prev) =>
@@ -43,6 +47,8 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
       worstMonthlyIncome: parseFloat(worst) || 0,
       workDays,
     });
+    const rate = parseFloat(blueRate);
+    if (rate > 0) setBlueRate(rate);
     onClose();
   };
 
@@ -160,6 +166,30 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             )}
           </p>
         )}
+      </div>
+
+      {/* Blue dollar rate */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-text">Dólar blue</label>
+        <p className="mt-0.5 text-[11px] text-muted">
+          Cotización ARS por USD. Se usa para convertir los movimientos cargados en dólares.
+        </p>
+        <div className="relative mt-1.5">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">
+            1 USD =
+          </span>
+          <input
+            type="number"
+            min="1"
+            value={blueRate}
+            onChange={(e) => setBlueRateLocal(e.target.value)}
+            placeholder="1200"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-16 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">
+            ARS
+          </span>
+        </div>
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
