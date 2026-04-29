@@ -41,8 +41,8 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // — Creación: múltiples fechas seleccionadas
-  const [selectedDates, setSelectedDates] = useState<string[]>([todayISO()]);
+  // — Creación: múltiples fechas seleccionadas (vacío hasta que el usuario elija)
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   // — Edición: fecha única
@@ -66,7 +66,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setVariability('fixed');
       setCategory('other');
       setNote('');
-      setSelectedDates([todayISO()]);
+      setSelectedDates([]);
       setCalendarMonth(new Date());
     }
   }, [open, transaction]);
@@ -79,11 +79,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
 
   function toggleDate(iso: string) {
     setSelectedDates((prev) =>
-      prev.includes(iso)
-        ? prev.length === 1
-          ? prev // al menos 1 fecha siempre
-          : prev.filter((d) => d !== iso)
-        : [...prev, iso].sort(),
+      prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort(),
     );
   }
 
@@ -92,6 +88,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
     const num = Number(amount);
     if (!title.trim()) return setError('Poné un nombre al movimiento.');
     if (!Number.isFinite(num) || num <= 0) return setError('El monto tiene que ser mayor a 0.');
+    if (!isEdit && selectedDates.length === 0) return setError('Seleccioná al menos un día.');
 
     if (isEdit && transaction) {
       updateTransaction(transaction.id, {
@@ -193,11 +190,15 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
         {!isEdit && (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-text">Días</span>
-              <span className="text-[11px] text-muted">
-                {selectedDates.length === 1
-                  ? '1 día seleccionado'
-                  : `${selectedDates.length} días seleccionados`}
+              <span className="text-sm font-medium text-text">
+                Días <span className="text-expense">*</span>
+              </span>
+              <span className={`text-[11px] ${selectedDates.length === 0 ? 'text-expense' : 'text-muted'}`}>
+                {selectedDates.length === 0
+                  ? 'Seleccioná al menos un día'
+                  : selectedDates.length === 1
+                    ? '1 día seleccionado'
+                    : `${selectedDates.length} días seleccionados`}
               </span>
             </div>
 
@@ -297,12 +298,14 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={!isEdit && selectedDates.length === 0}>
             {isEdit
               ? 'Guardar cambios'
-              : selectedDates.length === 1
-                ? 'Guardar'
-                : `Guardar ${selectedDates.length} movimientos`}
+              : selectedDates.length === 0
+                ? 'Seleccioná un día'
+                : selectedDates.length === 1
+                  ? 'Guardar'
+                  : `Guardar ${selectedDates.length} movimientos`}
           </Button>
         </div>
       </form>
