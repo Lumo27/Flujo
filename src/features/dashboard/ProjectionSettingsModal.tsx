@@ -20,16 +20,16 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
   const setBlueRate = useTransactionsStore((s) => s.setBlueRate);
 
-  const [estimated, setEstimated] = useState('');
-  const [worst, setWorst] = useState('');
+  const [dailyEstimated, setDailyEstimated] = useState('');
+  const [dailyWorst, setDailyWorst] = useState('');
   const [workDays, setWorkDays] = useState<string[]>([]);
   const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
 
   useEffect(() => {
     if (!open) return;
-    setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
-    setWorst(stored.worstMonthlyIncome ? String(stored.worstMonthlyIncome) : '');
+    setDailyEstimated(stored.dailyEstimated ? String(stored.dailyEstimated) : '');
+    setDailyWorst(stored.dailyWorst ? String(stored.dailyWorst) : '');
     setWorkDays(stored.workDays ?? []);
     setBlueRateLocal(storedBlueRate ? String(storedBlueRate) : '');
     setCalMonth(new Date());
@@ -43,8 +43,8 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
 
   const handleSave = () => {
     setProjectionSettings({
-      estimatedMonthlyIncome: parseFloat(estimated) || 0,
-      worstMonthlyIncome: parseFloat(worst) || 0,
+      dailyEstimated: parseFloat(dailyEstimated) || 0,
+      dailyWorst: parseFloat(dailyWorst) || 0,
       workDays,
     });
     const rate = parseFloat(blueRate);
@@ -52,8 +52,8 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     onClose();
   };
 
-  const estNum = parseFloat(estimated) || 0;
-  const worstNum = parseFloat(worst) || 0;
+  const estNum = parseFloat(dailyEstimated) || 0;
+  const worstNum = parseFloat(dailyWorst) || 0;
   const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
   const totalWorkDays = workDays.length;
 
@@ -62,26 +62,26 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   return (
     <Modal open={open} onClose={onClose} title="Metas del mes">
       <p className="mb-4 text-sm text-muted">
-        Definí cuánto esperás ganar en cada escenario y marcá los días que vas a trabajar.
-        Esos montos se van a distribuir equitativamente entre tus días de trabajo.
+        Ingresá cuánto cobrás por día de trabajo y marcá los días que vas a trabajar.
+        El total del mes se calcula automáticamente.
       </p>
 
-      {/* Montos */}
+      {/* Montos diarios */}
       <div className="grid grid-cols-2 gap-3">
         <FieldGroup
-          label="Estimación"
-          hint="Meta normal del mes"
-          value={estimated}
-          onChange={setEstimated}
-          placeholder="1200000"
+          label="Cobro estimado por día"
+          hint="Escenario normal"
+          value={dailyEstimated}
+          onChange={setDailyEstimated}
+          placeholder="190000"
           accent="analytics"
         />
         <FieldGroup
-          label="Piso del mes"
+          label="Piso por día"
           hint="Peor escenario posible"
-          value={worst}
-          onChange={setWorst}
-          placeholder="800000"
+          value={dailyWorst}
+          onChange={setDailyWorst}
+          placeholder="130000"
           accent="warning"
         />
       </div>
@@ -159,10 +159,10 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
           <p className="mt-1.5 text-[11px] text-muted">
             {n} día{n !== 1 ? 's' : ''} en este mes
             {estNum > 0 && (
-              <> · <span className="text-analytics">{formatCurrency(Math.round(estNum / n))}/día est.</span></>
+              <> · est. <span className="text-analytics">{n} × {formatCurrency(estNum)} = {formatCurrency(estNum * n)}</span></>
             )}
             {worstNum > 0 && (
-              <> · <span className="text-warning">{formatCurrency(Math.round(worstNum / n))}/día piso</span></>
+              <> · piso <span className="text-warning">{n} × {formatCurrency(worstNum)} = {formatCurrency(worstNum * n)}</span></>
             )}
           </p>
         )}
