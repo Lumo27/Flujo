@@ -12,6 +12,8 @@ interface Settings {
   seeded: boolean;
   /** Two numbers: expected income and worst-case income for the month. */
   projectionSettings: ProjectionSettings;
+  /** ARS per 1 USD (blue dollar rate). Used to convert USD transactions. */
+  blueRate: number;
 }
 
 interface TransactionsState {
@@ -26,6 +28,7 @@ interface TransactionsState {
   unconfirmTransaction: (id: string) => void;
   setStartingBalance: (amount: number) => void;
   setProjectionSettings: (ps: Partial<ProjectionSettings>) => void;
+  setBlueRate: (rate: number) => void;
   resetToSeed: () => void;
   clearAll: () => void;
 }
@@ -40,6 +43,7 @@ export const useTransactionsStore = create<TransactionsState>()(
         startingBalance: 0,
         seeded: false,
         projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+        blueRate: 1200,
       },
 
       addTransaction: (draft) =>
@@ -100,6 +104,9 @@ export const useTransactionsStore = create<TransactionsState>()(
           },
         })),
 
+      setBlueRate: (rate) =>
+        set((state) => ({ settings: { ...state.settings, blueRate: rate } })),
+
       resetToSeed: () => {
         const now = new Date();
         const y = now.getFullYear();
@@ -113,6 +120,7 @@ export const useTransactionsStore = create<TransactionsState>()(
           settings: {
             startingBalance: 40_000,
             seeded: true,
+            blueRate: 1200,
             projectionSettings: {
               estimatedMonthlyIncome: 1_520_000,
               worstMonthlyIncome: 1_040_000,
@@ -128,20 +136,28 @@ export const useTransactionsStore = create<TransactionsState>()(
           settings: {
             startingBalance: 0,
             seeded: true,
+            blueRate: 1200,
             projectionSettings: DEFAULT_PROJECTION_SETTINGS,
           },
         }),
     }),
     {
       name: PERSIST_KEY,
-      version: 6,
-      migrate(_persistedState, fromVersion) {
-        if (fromVersion < 6) {
+      version: 7,
+      migrate(_persistedState: unknown, fromVersion) {
+        if (fromVersion < 7) {
+          const s = _persistedState as { state?: { settings?: { blueRate?: number } } };
+          // If migrating from v6, just inject blueRate — keep all other data
+          if (fromVersion === 6 && s?.state?.settings) {
+            s.state.settings.blueRate = 1200;
+            return s;
+          }
           return {
             transactions: [],
             settings: {
               startingBalance: 0,
               seeded: false,
+              blueRate: 1200,
               projectionSettings: DEFAULT_PROJECTION_SETTINGS,
             },
           };

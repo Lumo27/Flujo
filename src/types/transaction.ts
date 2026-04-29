@@ -1,5 +1,7 @@
 export type TransactionType = 'income' | 'expense';
 
+export type Currency = 'ARS' | 'USD';
+
 export type TransactionStatus = 'pending' | 'confirmed';
 
 export type Variability = 'fixed' | 'variable';
@@ -28,7 +30,9 @@ export interface Transaction {
   note?: string;
   /** ISO date string (YYYY-MM-DD). */
   date: string;
-  /** Expected amount in ARS. Always positive. */
+  /** Currency of this transaction. Defaults to ARS when omitted. */
+  currency?: Currency;
+  /** Expected amount in the transaction's currency. Always positive. */
   estimatedAmount: number;
   /** Realised amount once confirmed. Always positive. */
   actualAmount?: number;

@@ -1,7 +1,7 @@
 import { ArrowDownLeft, ArrowUpRight, Check, Pencil, Trash2, Undo2 } from 'lucide-react';
 import { Transaction, CATEGORY_LABELS } from '@/types/transaction';
 import { Badge } from '@/components/ui/Badge';
-import { formatCurrency, formatDateShort } from '@/lib/format';
+import { formatAmount, formatCurrency, formatDateShort } from '@/lib/format';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
@@ -50,11 +50,14 @@ export function TransactionItem({ t }: { t: Transaction }) {
         <div className="flex flex-col items-end">
           <span className={`text-sm font-semibold ${isIncome ? 'text-income' : 'text-expense'}`}>
             {isIncome ? '+' : '−'}
-            {formatCurrency(amount)}
+            {formatAmount(amount, t.currency)}
           </span>
+          {t.currency === 'USD' && (
+            <span className="text-[10px] font-medium text-income/70">USD</span>
+          )}
           {delta !== 0 && (
             <span className={`text-[11px] ${delta > 0 ? 'text-income' : 'text-expense'}`}>
-              {formatCurrency(delta, { sign: true })} vs est.
+              {formatAmount(delta, t.currency, { sign: true })} vs est.
             </span>
           )}
         </div>
