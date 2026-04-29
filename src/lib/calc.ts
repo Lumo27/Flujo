@@ -4,21 +4,27 @@ import { isInMonth, toISO } from './date';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProjectionSettings {
-  /** How much you expect to earn per working day — your normal scenario. */
-  dailyEstimated: number;
-  /** How much you earn per day in the worst case — if everything goes wrong. */
-  dailyWorst: number;
+  /** Total income you want to earn this month — your goal. */
+  estimatedMonthlyIncome: number;
+  /** Total income in the worst case — floor scenario. */
+  worstMonthlyIncome: number;
+  /**
+   * How much you earn per shift/work day.
+   * Gets assigned to each selected work day to build the "Estimación"
+   * step-function line in the chart.
+   * Falls back to estimatedMonthlyIncome ÷ workDays when not set.
+   */
+  shiftIncome: number;
   /**
    * ISO dates of the days you plan to work this month.
-   * Each work day adds dailyEstimated / dailyWorst to the step-function lines
-   * in the chart, and the monthly total = daily rate × number of work days.
    */
   workDays: string[];
 }
 
 export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
-  dailyEstimated: 0,
-  dailyWorst: 0,
+  estimatedMonthlyIncome: 0,
+  worstMonthlyIncome: 0,
+  shiftIncome: 0,
   workDays: [],
 };
 
@@ -77,8 +83,8 @@ export function monthSummary(transactions: Transaction[], ref: Date, blueRate = 
  * Three-line projection for the chart:
  *
  * - actual:    cumulative confirmed income. Null for future dates (line stops at today).
- * - estimated: cumulative income at the estimated scenario, stepping up on each work day.
- * - worst:     cumulative income at the worst-case scenario, stepping up on each work day.
+ * - estimated: steps up by shiftIncome on each work day (or estimatedMonthlyIncome/n fallback).
+ * - worst:     steps up by worstMonthlyIncome/n on each work day.
  *
  * Est / Piso are null for all days if no work days are configured.
  */
@@ -114,9 +120,25 @@ export function projectIncomeByDay(
     .sort();
 
   const n = workDaysThisMonth.length;
-  const hasProjection = n > 0 && (settings.dailyEstimated > 0 || settings.dailyWorst > 0);
-  const perDayEst = settings.dailyEstimated;
-  const perDayWorst = settings.dailyWorst;
+  const hasProjection =
+    n > 0 &&
+    (settings.estimatedMonthlyIncome > 0 ||
+      settings.worstMonthlyIncome > 0 ||
+      settings.shiftIncome > 0);
+
+  // Estimated step: use shiftIncome if set, otherwise divide monthly goal by days
+  const perDayEst = hasProjection
+    ? settings.shiftIncome > 0
+      ? settings.shiftIncome
+      : settings.estimatedMonthlyIncome / n
+    : 0;
+
+  // Worst step: divide monthly worst by days
+  const perDayWorst = hasProjection && settings.worstMonthlyIncome > 0
+    ? settings.worstMonthlyIncome / n
+    : 0;
+
+  const hasWorst = hasProjection && perDayWorst > 0;
 
   let runActual = 0;
   let runEst = 0;
@@ -135,14 +157,14 @@ export function projectIncomeByDay(
 
     if (hasProjection && workDaysThisMonth.includes(iso)) {
       runEst += perDayEst;
-      runWorst += perDayWorst;
+      if (hasWorst) runWorst += perDayWorst;
     }
 
     points.push({
       date: iso,
       actual: iso <= today ? runActual : null,
       estimated: hasProjection ? Math.round(runEst) : null,
-      worst: hasProjection ? Math.round(runWorst) : null,
+      worst: hasWorst ? Math.round(runWorst) : null,
     });
   }
 
@@ -166,11 +188,10 @@ export function monthIncomeProjection(
     if (t.type !== 'income' || t.status !== 'confirmed') continue;
     actual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   }
-  const workDaysThisMonth = settings.workDays.filter((d) => isInMonth(d, ref));
   return {
     actual,
-    estimated: settings.dailyEstimated * workDaysThisMonth.length,
-    worst: settings.dailyWorst * workDaysThisMonth.length,
+    estimated: settings.estimatedMonthlyIncome,
+    worst: settings.worstMonthlyIncome,
   };
 }
 
