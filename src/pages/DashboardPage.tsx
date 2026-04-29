@@ -60,7 +60,7 @@ export function DashboardPage() {
             >
               <ChevronLeft size={18} />
             </button>
-            <h1 className="text-2xl font-semibold capitalize sm:text-3xl">
+            <h1 className="text-2xl font-semibold sm:text-3xl">
               {monthLabel(viewMonth)}
             </h1>
             <button

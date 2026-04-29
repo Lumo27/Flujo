@@ -37,11 +37,13 @@ export function formatCompact(value: number): string {
 
 export function formatDateLong(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
-  return new Intl.DateTimeFormat('es-AR', {
+  const raw = new Intl.DateTimeFormat('es-AR', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   }).format(d);
+  // Normalize to sentence case — some browsers capitalize every word via Intl
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }
 
 export function formatDateShort(iso: string): string {

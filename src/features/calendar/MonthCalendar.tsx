@@ -78,7 +78,7 @@ export function MonthCalendar({ transactions }: Props) {
             >
               <ChevronLeft size={18} />
             </button>
-            <h2 className="text-sm font-semibold capitalize sm:text-base">{monthLabel(ref)}</h2>
+            <h2 className="text-sm font-semibold sm:text-base">{monthLabel(ref)}</h2>
             <button
               onClick={() => !deleteMode && setRef(addMonths(ref, 1))}
               disabled={deleteMode}
@@ -196,7 +196,7 @@ export function MonthCalendar({ transactions }: Props) {
         <Card>
           <div className="mb-3">
             <p className="text-xs font-medium text-muted">Día seleccionado</p>
-            <h3 className="text-base font-semibold capitalize">
+            <h3 className="text-base font-semibold">
               {selected && !deleteMode ? formatDateLong(selected) : '—'}
             </h3>
           </div>

@@ -49,5 +49,7 @@ export function daysFromToday(n: number): string {
 }
 
 export function monthLabel(ref: Date): string {
-  return new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(ref);
+  const raw = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(ref);
+  // Capitalize only the first letter — CSS `capitalize` would uppercase every word (e.g. "De")
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
 }

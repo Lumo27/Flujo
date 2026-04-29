@@ -62,7 +62,7 @@ export function ProjectionCard({ income, isCurrentMonth }: Props) {
         </p>
 
         <p className="mt-1 text-[11px] text-muted">
-          Ingresos si las propinas son mínimas
+          Ingresos en el peor escenario posible
         </p>
 
         {hasActual && (
