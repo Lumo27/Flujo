@@ -24,7 +24,7 @@ const steps = [
     number: '01',
     title: 'Configurá tus metas y tipo de cambio',
     description:
-      'Al principio del mes, abrí Proyecciones. Ingresá cuánto esperás ganar en un escenario normal (Estimación) y en el peor caso (Piso). Seleccioná los días que vas a trabajar — eso divide el monto entre esos días para ver las líneas en el gráfico. También podés setear el dólar blue si tenés ingresos en USD.',
+      'Al principio del mes, abrí Proyecciones. Ingresá cuánto cobrás por día en un escenario normal (Estimación) y en el peor caso (Piso). Luego marcá los días que vas a trabajar — el total del mes se calcula solo multiplicando tu tarifa diaria por los días elegidos. También podés setear el dólar blue si tenés ingresos en USD.',
   },
   {
     icon: PlusCircle,
@@ -87,22 +87,22 @@ const glossary = [
     icon: TrendingUp,
     color: 'text-analytics bg-analytics-soft',
     term: 'A fin de mes (Estimación)',
-    definition: 'Total de ingresos que vas a generar este mes según tu meta configurada. Es el ingreso bruto — vos le restás tus gastos conocidos para saber cuánto te queda.',
-    example: 'Estimación: $1.200.000. Gastos fijos: $450.000. Te quedan ~$750.000.',
+    definition: 'Total de ingresos proyectados para el mes: tarifa diaria estimada × días de trabajo configurados. Es el ingreso bruto — vos le restás tus gastos conocidos para saber cuánto te queda.',
+    example: 'Tarifa $190.000/día × 8 días = $1.520.000. Gastos fijos: $450.000. Te quedan ~$1.070.000.',
   },
   {
     icon: ShieldAlert,
     color: 'text-warning bg-[rgba(245,158,11,0.12)]',
     term: 'Piso del mes',
-    definition: 'Total de ingresos en el peor escenario posible. Se configura una sola vez y es independiente de los movimientos cargados.',
-    example: 'Piso: $800.000. Si todo sale mal, igual superás tus gastos fijos de $450.000.',
+    definition: 'Total de ingresos en el peor escenario: tarifa diaria piso × días de trabajo. Se configura una sola vez y es independiente de los movimientos cargados.',
+    example: 'Tarifa piso $130.000/día × 8 días = $1.040.000. Si todo sale mal, igual superás tus gastos fijos de $450.000.',
   },
   {
     icon: CalendarDays,
     color: 'text-primary bg-primary-soft',
     term: 'Días de trabajo',
-    definition: 'Los días que marcás en Proyecciones como días laborales. El monto de Estimación y Piso se divide entre ellos para construir las líneas del gráfico en escalera.',
-    example: 'Estimación $1.200.000 en 8 turnos → $150.000 por turno en el gráfico.',
+    definition: 'Los días que marcás en Proyecciones como días laborales. En cada día de trabajo la línea del gráfico sube tu tarifa diaria, y el total del mes = tarifa × días.',
+    example: 'Tarifa $190.000/día × 8 turnos → la línea sube $190.000 por turno en el gráfico.',
   },
   {
     icon: Shuffle,

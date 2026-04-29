@@ -4,21 +4,21 @@ import { isInMonth, toISO } from './date';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProjectionSettings {
-  /** Total income you expect to earn this month — your normal scenario. */
-  estimatedMonthlyIncome: number;
-  /** Total income in the worst case — if everything goes wrong. */
-  worstMonthlyIncome: number;
+  /** How much you expect to earn per working day — your normal scenario. */
+  dailyEstimated: number;
+  /** How much you earn per day in the worst case — if everything goes wrong. */
+  dailyWorst: number;
   /**
    * ISO dates of the days you plan to work this month.
-   * The monthly totals are divided equally across these days to build
-   * the Est / Piso step-function lines in the chart.
+   * Each work day adds dailyEstimated / dailyWorst to the step-function lines
+   * in the chart, and the monthly total = daily rate × number of work days.
    */
   workDays: string[];
 }
 
 export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
-  estimatedMonthlyIncome: 0,
-  worstMonthlyIncome: 0,
+  dailyEstimated: 0,
+  dailyWorst: 0,
   workDays: [],
 };
 
@@ -114,9 +114,9 @@ export function projectIncomeByDay(
     .sort();
 
   const n = workDaysThisMonth.length;
-  const hasProjection = n > 0 && (settings.estimatedMonthlyIncome > 0 || settings.worstMonthlyIncome > 0);
-  const perDayEst = hasProjection ? settings.estimatedMonthlyIncome / n : 0;
-  const perDayWorst = hasProjection ? settings.worstMonthlyIncome / n : 0;
+  const hasProjection = n > 0 && (settings.dailyEstimated > 0 || settings.dailyWorst > 0);
+  const perDayEst = settings.dailyEstimated;
+  const perDayWorst = settings.dailyWorst;
 
   let runActual = 0;
   let runEst = 0;
@@ -166,10 +166,11 @@ export function monthIncomeProjection(
     if (t.type !== 'income' || t.status !== 'confirmed') continue;
     actual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   }
+  const workDaysThisMonth = settings.workDays.filter((d) => isInMonth(d, ref));
   return {
     actual,
-    estimated: settings.estimatedMonthlyIncome,
-    worst: settings.worstMonthlyIncome,
+    estimated: settings.dailyEstimated * workDaysThisMonth.length,
+    worst: settings.dailyWorst * workDaysThisMonth.length,
   };
 }
 

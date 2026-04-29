@@ -122,8 +122,8 @@ export const useTransactionsStore = create<TransactionsState>()(
             seeded: true,
             blueRate: 1200,
             projectionSettings: {
-              estimatedMonthlyIncome: 1_520_000,
-              worstMonthlyIncome: 1_040_000,
+              dailyEstimated: 190_000,
+              dailyWorst: 130_000,
               workDays: [day(5), day(6), day(12), day(13), day(19), day(20), day(24), day(25)],
             },
           },
@@ -143,21 +143,29 @@ export const useTransactionsStore = create<TransactionsState>()(
     }),
     {
       name: PERSIST_KEY,
-      version: 7,
+      version: 8,
       migrate(_persistedState: unknown, fromVersion) {
-        if (fromVersion < 7) {
-          const s = _persistedState as { state?: { settings?: { blueRate?: number } } };
-          // If migrating from v6, just inject blueRate — keep all other data
-          if (fromVersion === 6 && s?.state?.settings) {
-            s.state.settings.blueRate = 1200;
-            return s;
-          }
+        if (fromVersion < 8) {
+          // v7 → v8: rename monthly totals to daily rates.
+          // We can't safely convert (we'd need workDays count), so reset projections
+          // but preserve transactions and balance.
+          const s = _persistedState as {
+            state?: {
+              transactions?: Transaction[];
+              settings?: {
+                startingBalance?: number;
+                seeded?: boolean;
+                blueRate?: number;
+              };
+            };
+          };
+          const prev = s?.state;
           return {
-            transactions: [],
+            transactions: prev?.transactions ?? [],
             settings: {
-              startingBalance: 0,
-              seeded: false,
-              blueRate: 1200,
+              startingBalance: prev?.settings?.startingBalance ?? 0,
+              seeded: prev?.settings?.seeded ?? false,
+              blueRate: prev?.settings?.blueRate ?? 1200,
               projectionSettings: DEFAULT_PROJECTION_SETTINGS,
             },
           };
