@@ -24,9 +24,10 @@ const THEME = {
 interface Props {
   points: IncomePoint[];
   hasProjection: boolean;
+  isCurrentMonth: boolean;
 }
 
-export function CashflowChart({ points, hasProjection }: Props) {
+export function CashflowChart({ points, hasProjection, isCurrentMonth }: Props) {
   const data = points.map((p) => ({
     date: p.date,
     label: formatDateShort(p.date),
@@ -47,7 +48,7 @@ export function CashflowChart({ points, hasProjection }: Props) {
         icon={<LineIcon size={16} />}
         iconTone="analytics"
         title="Ingresos del mes"
-        subtitle="Realidad confirmada vs. tus metas mensuales"
+        subtitle={isCurrentMonth ? 'Realidad confirmada vs. tus metas mensuales' : 'Ingresos confirmados del mes seleccionado'}
       />
 
       {/* Legend */}
