@@ -37,7 +37,9 @@ export function DashboardPage() {
   );
   const hasProjection =
     projectionSettings.workDays.length > 0 &&
-    (projectionSettings.dailyEstimated > 0 || projectionSettings.dailyWorst > 0);
+    (projectionSettings.estimatedMonthlyIncome > 0 ||
+      projectionSettings.worstMonthlyIncome > 0 ||
+      projectionSettings.shiftIncome > 0);
   const incomeProjection = useMemo(
     () => monthIncomeProjection(transactions, viewMonth, projectionSettings, blueRate),
     [transactions, viewMonth, projectionSettings, blueRate],

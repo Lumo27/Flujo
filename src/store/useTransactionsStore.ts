@@ -122,8 +122,9 @@ export const useTransactionsStore = create<TransactionsState>()(
             seeded: true,
             blueRate: 1200,
             projectionSettings: {
-              dailyEstimated: 190_000,
-              dailyWorst: 130_000,
+              estimatedMonthlyIncome: 1_520_000,
+              worstMonthlyIncome: 1_040_000,
+              shiftIncome: 190_000,
               workDays: [day(5), day(6), day(12), day(13), day(19), day(20), day(24), day(25)],
             },
           },
@@ -143,28 +144,41 @@ export const useTransactionsStore = create<TransactionsState>()(
     }),
     {
       name: PERSIST_KEY,
-      version: 8,
+      version: 9,
       migrate(_persistedState: unknown, fromVersion) {
-        if (fromVersion < 8) {
-          // Zustand passes the raw state object (not the { state, version } wrapper).
-          // v7 → v8: rename monthly totals to daily rates.
-          // We can't safely convert the old numbers (would need workDays count),
-          // so reset projections but preserve transactions and balance.
+        if (fromVersion < 9) {
+          // Zustand passes the raw state object directly (not the { state, version } wrapper).
+          // Preserve transactions, balance, blueRate and workDays across all migrations.
+          // v8 had dailyEstimated/dailyWorst — carry dailyEstimated over as shiftIncome.
           const s = _persistedState as {
             transactions?: Transaction[];
             settings?: {
               startingBalance?: number;
               seeded?: boolean;
               blueRate?: number;
+              projectionSettings?: {
+                estimatedMonthlyIncome?: number;
+                worstMonthlyIncome?: number;
+                dailyEstimated?: number;
+                dailyWorst?: number;
+                workDays?: string[];
+              };
             };
           };
+          const ps = s?.settings?.projectionSettings;
           return {
             transactions: s?.transactions ?? [],
             settings: {
               startingBalance: s?.settings?.startingBalance ?? 0,
               seeded: s?.settings?.seeded ?? false,
               blueRate: s?.settings?.blueRate ?? 1200,
-              projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+              projectionSettings: {
+                estimatedMonthlyIncome: ps?.estimatedMonthlyIncome ?? 0,
+                worstMonthlyIncome: ps?.worstMonthlyIncome ?? 0,
+                // carry dailyEstimated (v8) over as shiftIncome
+                shiftIncome: ps?.dailyEstimated ?? 0,
+                workDays: ps?.workDays ?? [],
+              },
             },
           };
         }
