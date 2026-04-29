@@ -146,26 +146,24 @@ export const useTransactionsStore = create<TransactionsState>()(
       version: 8,
       migrate(_persistedState: unknown, fromVersion) {
         if (fromVersion < 8) {
+          // Zustand passes the raw state object (not the { state, version } wrapper).
           // v7 → v8: rename monthly totals to daily rates.
-          // We can't safely convert (we'd need workDays count), so reset projections
-          // but preserve transactions and balance.
+          // We can't safely convert the old numbers (would need workDays count),
+          // so reset projections but preserve transactions and balance.
           const s = _persistedState as {
-            state?: {
-              transactions?: Transaction[];
-              settings?: {
-                startingBalance?: number;
-                seeded?: boolean;
-                blueRate?: number;
-              };
+            transactions?: Transaction[];
+            settings?: {
+              startingBalance?: number;
+              seeded?: boolean;
+              blueRate?: number;
             };
           };
-          const prev = s?.state;
           return {
-            transactions: prev?.transactions ?? [],
+            transactions: s?.transactions ?? [],
             settings: {
-              startingBalance: prev?.settings?.startingBalance ?? 0,
-              seeded: prev?.settings?.seeded ?? false,
-              blueRate: prev?.settings?.blueRate ?? 1200,
+              startingBalance: s?.settings?.startingBalance ?? 0,
+              seeded: s?.settings?.seeded ?? false,
+              blueRate: s?.settings?.blueRate ?? 1200,
               projectionSettings: DEFAULT_PROJECTION_SETTINGS,
             },
           };
