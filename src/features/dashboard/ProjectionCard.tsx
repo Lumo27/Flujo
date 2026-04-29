@@ -13,10 +13,11 @@ interface IncomeProjection {
 
 interface Props {
   income: IncomeProjection;
+  isCurrentMonth: boolean;
 }
 
-export function ProjectionCard({ income }: Props) {
-  const hasActual = income.actual > 0;
+export function ProjectionCard({ income, isCurrentMonth }: Props) {
+  const hasActual = income.actual > 0 && isCurrentMonth;
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">

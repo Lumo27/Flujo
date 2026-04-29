@@ -7,6 +7,7 @@ import { Field, Input, Select } from '@/components/ui/Input';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import {
   CATEGORY_LABELS,
+  Currency,
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
   Transaction,
@@ -36,13 +37,14 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
   const [type, setType] = useState<TransactionType>('expense');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>('ARS');
   const [variability, setVariability] = useState<Variability>('fixed');
   const [category, setCategory] = useState<TransactionCategory>('other');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // — Creación: múltiples fechas seleccionadas
-  const [selectedDates, setSelectedDates] = useState<string[]>([todayISO()]);
+  // — Creación: múltiples fechas seleccionadas (vacío hasta que el usuario elija)
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   // — Edición: fecha única
@@ -55,6 +57,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setType(transaction.type);
       setTitle(transaction.title);
       setAmount(String(transaction.estimatedAmount));
+      setCurrency(transaction.currency ?? 'ARS');
       setVariability(transaction.variability);
       setCategory(transaction.category);
       setDate(transaction.date);
@@ -63,10 +66,11 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
       setType('expense');
       setTitle('');
       setAmount('');
+      setCurrency('ARS');
       setVariability('fixed');
       setCategory('other');
       setNote('');
-      setSelectedDates([todayISO()]);
+      setSelectedDates([]);
       setCalendarMonth(new Date());
     }
   }, [open, transaction]);
@@ -79,11 +83,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
 
   function toggleDate(iso: string) {
     setSelectedDates((prev) =>
-      prev.includes(iso)
-        ? prev.length === 1
-          ? prev // al menos 1 fecha siempre
-          : prev.filter((d) => d !== iso)
-        : [...prev, iso].sort(),
+      prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort(),
     );
   }
 
@@ -92,10 +92,12 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
     const num = Number(amount);
     if (!title.trim()) return setError('Poné un nombre al movimiento.');
     if (!Number.isFinite(num) || num <= 0) return setError('El monto tiene que ser mayor a 0.');
+    if (!isEdit && selectedDates.length === 0) return setError('Seleccioná al menos un día.');
 
     if (isEdit && transaction) {
       updateTransaction(transaction.id, {
         type,
+        currency,
         variability,
         category,
         title: title.trim(),
@@ -104,12 +106,11 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
         estimatedAmount: num,
       });
     } else {
-      // Crear una transacción por cada fecha seleccionada
       const isFixedExpense = type === 'expense' && variability === 'fixed';
       addTransactions(
         selectedDates.map((d) => ({
           type,
-          // Gastos fijos: se auto-confirman (el monto nunca cambia, no hay qué verificar)
+          currency,
           status: isFixedExpense ? ('confirmed' as const) : ('pending' as const),
           actualAmount: isFixedExpense ? num : undefined,
           variability,
@@ -173,12 +174,40 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
 
         <div className={isEdit ? 'grid grid-cols-2 gap-3' : ''}>
           <Field label="Monto estimado">
-            <Input
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-              placeholder="0"
-            />
+            <div className="flex gap-2">
+              <Input
+                inputMode="numeric"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="0"
+                className="flex-1"
+              />
+              {/* Currency toggle */}
+              <div className="flex shrink-0 overflow-hidden rounded-xl border border-border">
+                <button
+                  type="button"
+                  onClick={() => setCurrency('ARS')}
+                  className={`px-3 py-2 text-xs font-semibold transition-colors ${
+                    currency === 'ARS'
+                      ? 'bg-primary text-white'
+                      : 'bg-surface-2 text-muted hover:text-text'
+                  }`}
+                >
+                  $
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrency('USD')}
+                  className={`px-3 py-2 text-xs font-semibold transition-colors ${
+                    currency === 'USD'
+                      ? 'bg-income text-white'
+                      : 'bg-surface-2 text-muted hover:text-text'
+                  }`}
+                >
+                  U$S
+                </button>
+              </div>
+            </div>
           </Field>
 
           {/* Edición: fecha única */}
@@ -193,11 +222,15 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
         {!isEdit && (
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-text">Días</span>
-              <span className="text-[11px] text-muted">
-                {selectedDates.length === 1
-                  ? '1 día seleccionado'
-                  : `${selectedDates.length} días seleccionados`}
+              <span className="text-sm font-medium text-text">
+                Días <span className="text-expense">*</span>
+              </span>
+              <span className={`text-[11px] ${selectedDates.length === 0 ? 'text-expense' : 'text-muted'}`}>
+                {selectedDates.length === 0
+                  ? 'Seleccioná al menos un día'
+                  : selectedDates.length === 1
+                    ? '1 día seleccionado'
+                    : `${selectedDates.length} días seleccionados`}
               </span>
             </div>
 
@@ -297,12 +330,14 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={!isEdit && selectedDates.length === 0}>
             {isEdit
               ? 'Guardar cambios'
-              : selectedDates.length === 1
-                ? 'Guardar'
-                : `Guardar ${selectedDates.length} movimientos`}
+              : selectedDates.length === 0
+                ? 'Seleccioná un día'
+                : selectedDates.length === 1
+                  ? 'Guardar'
+                  : `Guardar ${selectedDates.length} movimientos`}
           </Button>
         </div>
       </form>

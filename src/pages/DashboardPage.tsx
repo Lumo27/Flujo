@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { addMonths, isSameMonth } from 'date-fns';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { BalanceCard } from '@/features/dashboard/BalanceCard';
 import { MonthSummary } from '@/features/dashboard/MonthSummary';
@@ -7,31 +9,40 @@ import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
 import { ProjectionSettingsModal } from '@/features/dashboard/ProjectionSettingsModal';
 import { currentBalance, projectIncomeByDay, monthIncomeProjection, monthSummary, upcoming } from '@/lib/calc';
-import { SlidersHorizontal } from 'lucide-react';
+import { monthLabel } from '@/lib/date';
 
 export function DashboardPage() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const startingBalance = useTransactionsStore((s) => s.settings.startingBalance);
   const projectionSettings = useTransactionsStore((s) => s.settings.projectionSettings);
+  const blueRate = useTransactionsStore((s) => s.settings.blueRate);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(new Date());
 
-  const now = useMemo(() => new Date(), []);
+  const today = useMemo(() => new Date(), []);
+  const isCurrentMonth = isSameMonth(viewMonth, today);
+
   const balance = useMemo(
-    () => startingBalance + currentBalance(transactions),
-    [transactions, startingBalance],
+    () => startingBalance + currentBalance(transactions, blueRate),
+    [transactions, startingBalance, blueRate],
   );
-  const summary = useMemo(() => monthSummary(transactions, now), [transactions, now]);
+  const summary = useMemo(
+    () => monthSummary(transactions, viewMonth, blueRate),
+    [transactions, viewMonth, blueRate],
+  );
   const incomePoints = useMemo(
-    () => projectIncomeByDay(transactions, now, projectionSettings),
-    [transactions, now, projectionSettings],
+    () => projectIncomeByDay(transactions, viewMonth, projectionSettings, blueRate),
+    [transactions, viewMonth, projectionSettings, blueRate],
   );
   const hasProjection =
     projectionSettings.workDays.length > 0 &&
-    (projectionSettings.estimatedMonthlyIncome > 0 || projectionSettings.worstMonthlyIncome > 0);
+    (projectionSettings.estimatedMonthlyIncome > 0 ||
+      projectionSettings.worstMonthlyIncome > 0 ||
+      projectionSettings.shiftIncome > 0);
   const incomeProjection = useMemo(
-    () => monthIncomeProjection(transactions, now, projectionSettings),
-    [transactions, now, projectionSettings],
+    () => monthIncomeProjection(transactions, viewMonth, projectionSettings, blueRate),
+    [transactions, viewMonth, projectionSettings, blueRate],
   );
   const next = useMemo(() => upcoming(transactions, 14), [transactions]);
 
@@ -40,7 +51,34 @@ export function DashboardPage() {
       <header className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-muted">Dashboard</p>
-          <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">Tu flujo del mes</h1>
+          {/* Month navigator */}
+          <div className="mt-1 flex items-center gap-2">
+            <button
+              onClick={() => setViewMonth((m) => addMonths(m, -1))}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text"
+              aria-label="Mes anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <h1 className="text-2xl font-semibold capitalize sm:text-3xl">
+              {monthLabel(viewMonth)}
+            </h1>
+            <button
+              onClick={() => setViewMonth((m) => addMonths(m, 1))}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-text"
+              aria-label="Mes siguiente"
+            >
+              <ChevronRight size={18} />
+            </button>
+            {!isCurrentMonth && (
+              <button
+                onClick={() => setViewMonth(new Date())}
+                className="rounded-lg border border-border px-2 py-0.5 text-[11px] font-medium text-muted transition-colors hover:border-primary/40 hover:text-primary"
+              >
+                Hoy
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted">
             Ingresos confirmados, meta estimada y piso del mes — de un vistazo.
           </p>
@@ -57,10 +95,10 @@ export function DashboardPage() {
 
       <BalanceCard balance={balance} />
       <MonthSummary summary={summary} />
-      <ProjectionCard income={incomeProjection} />
+      <ProjectionCard income={incomeProjection} isCurrentMonth={isCurrentMonth} />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr] lg:gap-5">
-        <CashflowChart points={incomePoints} hasProjection={hasProjection} />
+        <CashflowChart points={incomePoints} hasProjection={hasProjection} isCurrentMonth={isCurrentMonth} />
         <UpcomingList items={next} />
       </div>
 

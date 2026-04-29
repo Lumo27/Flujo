@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { formatCurrency } from '@/lib/format';
-import { calendarGrid, monthLabel, todayISO, toISO } from '@/lib/date';
+import { calendarGrid, monthLabel, toISO } from '@/lib/date';
 import { cn } from '@/lib/cn';
 
 interface Props {
@@ -16,20 +16,26 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export function ProjectionSettingsModal({ open, onClose }: Props) {
   const stored = useTransactionsStore((s) => s.settings.projectionSettings);
+  const storedBlueRate = useTransactionsStore((s) => s.settings.blueRate);
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
+  const setBlueRate = useTransactionsStore((s) => s.setBlueRate);
 
   const [estimated, setEstimated] = useState('');
   const [worst, setWorst] = useState('');
+  const [shiftIncome, setShiftIncome] = useState('');
   const [workDays, setWorkDays] = useState<string[]>([]);
+  const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
 
   useEffect(() => {
     if (!open) return;
     setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
     setWorst(stored.worstMonthlyIncome ? String(stored.worstMonthlyIncome) : '');
+    setShiftIncome(stored.shiftIncome ? String(stored.shiftIncome) : '');
     setWorkDays(stored.workDays ?? []);
+    setBlueRateLocal(storedBlueRate ? String(storedBlueRate) : '');
     setCalMonth(new Date());
-  }, [open, stored]);
+  }, [open, stored, storedBlueRate]);
 
   function toggleDay(iso: string) {
     setWorkDays((prev) =>
@@ -41,13 +47,19 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     setProjectionSettings({
       estimatedMonthlyIncome: parseFloat(estimated) || 0,
       worstMonthlyIncome: parseFloat(worst) || 0,
+      shiftIncome: parseFloat(shiftIncome) || 0,
       workDays,
     });
+    const rate = parseFloat(blueRate);
+    if (rate > 0) setBlueRate(rate);
     onClose();
   };
 
   const estNum = parseFloat(estimated) || 0;
   const worstNum = parseFloat(worst) || 0;
+  const shiftNum = parseFloat(shiftIncome) || 0;
+
+  // Days selected in the currently viewed calendar month
   const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
   const totalWorkDays = workDays.length;
 
@@ -56,14 +68,13 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   return (
     <Modal open={open} onClose={onClose} title="Metas del mes">
       <p className="mb-4 text-sm text-muted">
-        Definí cuánto esperás ganar en cada escenario y marcá los días que vas a trabajar.
-        Esos montos se van a distribuir equitativamente entre tus días de trabajo.
+        Definí tu meta mensual y marcá los días que vas a trabajar. Después ingresá cuánto cobrás por turno.
       </p>
 
-      {/* Montos */}
+      {/* Totales mensuales */}
       <div className="grid grid-cols-2 gap-3">
         <FieldGroup
-          label="Estimación"
+          label="Fin de mes estimado"
           hint="Meta normal del mes"
           value={estimated}
           onChange={setEstimated}
@@ -71,11 +82,11 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
           accent="analytics"
         />
         <FieldGroup
-          label="Piso del mes"
+          label="Peor fin de mes"
           hint="Peor escenario posible"
           value={worst}
           onChange={setWorst}
-          placeholder="800000"
+          placeholder="900000"
           accent="warning"
         />
       </div>
@@ -148,18 +159,59 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             })}
           </div>
         </div>
+      </div>
 
-        {n > 0 && (estNum > 0 || worstNum > 0) && (
+      {/* Cobro por turno */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-text">¿Cuánto cobrás por turno?</label>
+        <p className="mt-0.5 text-[11px] text-muted">
+          Se asigna a cada turno seleccionado para mostrar tu ritmo en el gráfico.
+        </p>
+        <div className="relative mt-1.5">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+          <input
+            type="number"
+            min="0"
+            value={shiftIncome}
+            onChange={(e) => setShiftIncome(e.target.value)}
+            placeholder="150000"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        </div>
+        {n > 0 && shiftNum > 0 && (
           <p className="mt-1.5 text-[11px] text-muted">
-            {n} día{n !== 1 ? 's' : ''} en este mes
-            {estNum > 0 && (
-              <> · <span className="text-analytics">{formatCurrency(Math.round(estNum / n))}/día est.</span></>
-            )}
-            {worstNum > 0 && (
-              <> · <span className="text-warning">{formatCurrency(Math.round(worstNum / n))}/día piso</span></>
+            {n} turno{n !== 1 ? 's' : ''} en este mes ·{' '}
+            <span className="text-income font-medium">
+              {n} × {formatCurrency(shiftNum)} = {formatCurrency(shiftNum * n)}
+            </span>
+            {estNum > 0 && shiftNum * n !== estNum && (
+              <span className="ml-1 text-muted/60">
+                (meta: {formatCurrency(estNum)})
+              </span>
             )}
           </p>
         )}
+      </div>
+
+      {/* Blue dollar rate */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-text">Dólar blue</label>
+        <p className="mt-0.5 text-[11px] text-muted">
+          Cotización ARS por USD. Se usa para convertir los movimientos cargados en dólares.
+        </p>
+        <div className="relative mt-1.5">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted">
+            1 USD =
+          </span>
+          <input
+            type="number"
+            min="1"
+            value={blueRate}
+            onChange={(e) => setBlueRateLocal(e.target.value)}
+            placeholder="1200 ARS"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-16 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+        </div>
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
@@ -207,7 +259,7 @@ function FieldGroup({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:outline-none focus:ring-2 ${focusRing}`}
+          className={`w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${focusRing}`}
         />
       </div>
     </div>

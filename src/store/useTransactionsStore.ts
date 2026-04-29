@@ -12,6 +12,8 @@ interface Settings {
   seeded: boolean;
   /** Two numbers: expected income and worst-case income for the month. */
   projectionSettings: ProjectionSettings;
+  /** ARS per 1 USD (blue dollar rate). Used to convert USD transactions. */
+  blueRate: number;
 }
 
 interface TransactionsState {
@@ -26,6 +28,7 @@ interface TransactionsState {
   unconfirmTransaction: (id: string) => void;
   setStartingBalance: (amount: number) => void;
   setProjectionSettings: (ps: Partial<ProjectionSettings>) => void;
+  setBlueRate: (rate: number) => void;
   resetToSeed: () => void;
   clearAll: () => void;
 }
@@ -40,6 +43,7 @@ export const useTransactionsStore = create<TransactionsState>()(
         startingBalance: 0,
         seeded: false,
         projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+        blueRate: 1200,
       },
 
       addTransaction: (draft) =>
@@ -100,6 +104,9 @@ export const useTransactionsStore = create<TransactionsState>()(
           },
         })),
 
+      setBlueRate: (rate) =>
+        set((state) => ({ settings: { ...state.settings, blueRate: rate } })),
+
       resetToSeed: () => {
         const now = new Date();
         const y = now.getFullYear();
@@ -113,9 +120,11 @@ export const useTransactionsStore = create<TransactionsState>()(
           settings: {
             startingBalance: 40_000,
             seeded: true,
+            blueRate: 1200,
             projectionSettings: {
               estimatedMonthlyIncome: 1_520_000,
               worstMonthlyIncome: 1_040_000,
+              shiftIncome: 190_000,
               workDays: [day(5), day(6), day(12), day(13), day(19), day(20), day(24), day(25)],
             },
           },
@@ -128,21 +137,48 @@ export const useTransactionsStore = create<TransactionsState>()(
           settings: {
             startingBalance: 0,
             seeded: true,
+            blueRate: 1200,
             projectionSettings: DEFAULT_PROJECTION_SETTINGS,
           },
         }),
     }),
     {
       name: PERSIST_KEY,
-      version: 6,
-      migrate(_persistedState, fromVersion) {
-        if (fromVersion < 6) {
+      version: 9,
+      migrate(_persistedState: unknown, fromVersion) {
+        if (fromVersion < 9) {
+          // Zustand passes the raw state object directly (not the { state, version } wrapper).
+          // Preserve transactions, balance, blueRate and workDays across all migrations.
+          // v8 had dailyEstimated/dailyWorst — carry dailyEstimated over as shiftIncome.
+          const s = _persistedState as {
+            transactions?: Transaction[];
+            settings?: {
+              startingBalance?: number;
+              seeded?: boolean;
+              blueRate?: number;
+              projectionSettings?: {
+                estimatedMonthlyIncome?: number;
+                worstMonthlyIncome?: number;
+                dailyEstimated?: number;
+                dailyWorst?: number;
+                workDays?: string[];
+              };
+            };
+          };
+          const ps = s?.settings?.projectionSettings;
           return {
-            transactions: [],
+            transactions: s?.transactions ?? [],
             settings: {
-              startingBalance: 0,
-              seeded: false,
-              projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+              startingBalance: s?.settings?.startingBalance ?? 0,
+              seeded: s?.settings?.seeded ?? false,
+              blueRate: s?.settings?.blueRate ?? 1200,
+              projectionSettings: {
+                estimatedMonthlyIncome: ps?.estimatedMonthlyIncome ?? 0,
+                worstMonthlyIncome: ps?.worstMonthlyIncome ?? 0,
+                // carry dailyEstimated (v8) over as shiftIncome
+                shiftIncome: ps?.dailyEstimated ?? 0,
+                workDays: ps?.workDays ?? [],
+              },
             },
           };
         }

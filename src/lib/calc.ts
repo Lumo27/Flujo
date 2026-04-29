@@ -4,14 +4,19 @@ import { isInMonth, toISO } from './date';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProjectionSettings {
-  /** Total income you expect to earn this month — your normal scenario. */
+  /** Total income you want to earn this month — your goal. */
   estimatedMonthlyIncome: number;
-  /** Total income in the worst case — if everything goes wrong. */
+  /** Total income in the worst case — floor scenario. */
   worstMonthlyIncome: number;
   /**
+   * How much you earn per shift/work day.
+   * Gets assigned to each selected work day to build the "Estimación"
+   * step-function line in the chart.
+   * Falls back to estimatedMonthlyIncome ÷ workDays when not set.
+   */
+  shiftIncome: number;
+  /**
    * ISO dates of the days you plan to work this month.
-   * The monthly totals are divided equally across these days to build
-   * the Est / Piso step-function lines in the chart.
    */
   workDays: string[];
 }
@@ -19,25 +24,31 @@ export interface ProjectionSettings {
 export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   estimatedMonthlyIncome: 0,
   worstMonthlyIncome: 0,
+  shiftIncome: 0,
   workDays: [],
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function confirmedDelta(t: Transaction): number {
+/** Convert a transaction amount to ARS using the blue rate. */
+function toARS(amount: number, t: Transaction, blueRate: number): number {
+  return t.currency === 'USD' ? amount * blueRate : amount;
+}
+
+function confirmedDelta(t: Transaction, blueRate: number): number {
   if (t.status !== 'confirmed') return 0;
-  const amount = t.actualAmount ?? t.estimatedAmount;
+  const amount = toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   return t.type === 'income' ? amount : -amount;
 }
 
 // ─── Public calculations ──────────────────────────────────────────────────────
 
-export function realizedDelta(t: Transaction): number {
-  return confirmedDelta(t);
+export function realizedDelta(t: Transaction, blueRate = 1): number {
+  return confirmedDelta(t, blueRate);
 }
 
-export function currentBalance(transactions: Transaction[]): number {
-  return transactions.reduce((sum, t) => sum + confirmedDelta(t), 0);
+export function currentBalance(transactions: Transaction[], blueRate = 1): number {
+  return transactions.reduce((sum, t) => sum + confirmedDelta(t, blueRate), 0);
 }
 
 export interface MonthSummary {
@@ -47,7 +58,7 @@ export interface MonthSummary {
   expenseEstimated: number;
 }
 
-export function monthSummary(transactions: Transaction[], ref: Date): MonthSummary {
+export function monthSummary(transactions: Transaction[], ref: Date, blueRate = 1): MonthSummary {
   let incomeConfirmed = 0;
   let incomeEstimated = 0;
   let expenseConfirmed = 0;
@@ -55,8 +66,8 @@ export function monthSummary(transactions: Transaction[], ref: Date): MonthSumma
 
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
-    const est = t.estimatedAmount;
-    const act = t.actualAmount ?? t.estimatedAmount;
+    const est = toARS(t.estimatedAmount, t, blueRate);
+    const act = toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
     if (t.type === 'income') {
       incomeEstimated += est;
       if (t.status === 'confirmed') incomeConfirmed += act;
@@ -72,8 +83,8 @@ export function monthSummary(transactions: Transaction[], ref: Date): MonthSumma
  * Three-line projection for the chart:
  *
  * - actual:    cumulative confirmed income. Null for future dates (line stops at today).
- * - estimated: cumulative income at the estimated scenario, stepping up on each work day.
- * - worst:     cumulative income at the worst-case scenario, stepping up on each work day.
+ * - estimated: steps up by shiftIncome on each work day (or estimatedMonthlyIncome/n fallback).
+ * - worst:     steps up by worstMonthlyIncome/n on each work day.
  *
  * Est / Piso are null for all days if no work days are configured.
  */
@@ -88,6 +99,7 @@ export function projectIncomeByDay(
   transactions: Transaction[],
   ref: Date,
   settings: ProjectionSettings,
+  blueRate = 1,
 ): IncomePoint[] {
   const today = toISO(new Date());
   const year = ref.getFullYear();
@@ -108,9 +120,25 @@ export function projectIncomeByDay(
     .sort();
 
   const n = workDaysThisMonth.length;
-  const hasProjection = n > 0 && (settings.estimatedMonthlyIncome > 0 || settings.worstMonthlyIncome > 0);
-  const perDayEst = hasProjection ? settings.estimatedMonthlyIncome / n : 0;
-  const perDayWorst = hasProjection ? settings.worstMonthlyIncome / n : 0;
+  const hasProjection =
+    n > 0 &&
+    (settings.estimatedMonthlyIncome > 0 ||
+      settings.worstMonthlyIncome > 0 ||
+      settings.shiftIncome > 0);
+
+  // Estimated step: use shiftIncome if set, otherwise divide monthly goal by days
+  const perDayEst = hasProjection
+    ? settings.shiftIncome > 0
+      ? settings.shiftIncome
+      : settings.estimatedMonthlyIncome / n
+    : 0;
+
+  // Worst step: divide monthly worst by days
+  const perDayWorst = hasProjection && settings.worstMonthlyIncome > 0
+    ? settings.worstMonthlyIncome / n
+    : 0;
+
+  const hasWorst = hasProjection && perDayWorst > 0;
 
   let runActual = 0;
   let runEst = 0;
@@ -123,20 +151,20 @@ export function projectIncomeByDay(
 
     for (const t of items) {
       if (t.status === 'confirmed') {
-        runActual += t.actualAmount ?? t.estimatedAmount;
+        runActual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
       }
     }
 
     if (hasProjection && workDaysThisMonth.includes(iso)) {
       runEst += perDayEst;
-      runWorst += perDayWorst;
+      if (hasWorst) runWorst += perDayWorst;
     }
 
     points.push({
       date: iso,
       actual: iso <= today ? runActual : null,
       estimated: hasProjection ? Math.round(runEst) : null,
-      worst: hasProjection ? Math.round(runWorst) : null,
+      worst: hasWorst ? Math.round(runWorst) : null,
     });
   }
 
@@ -152,12 +180,13 @@ export function monthIncomeProjection(
   transactions: Transaction[],
   ref: Date,
   settings: ProjectionSettings,
+  blueRate = 1,
 ): { actual: number; estimated: number; worst: number } {
   let actual = 0;
   for (const t of transactions) {
     if (!isInMonth(t.date, ref)) continue;
     if (t.type !== 'income' || t.status !== 'confirmed') continue;
-    actual += t.actualAmount ?? t.estimatedAmount;
+    actual += toARS(t.actualAmount ?? t.estimatedAmount, t, blueRate);
   }
   return {
     actual,
