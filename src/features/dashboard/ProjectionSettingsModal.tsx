@@ -175,7 +175,7 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             value={shiftIncome}
             onChange={(e) => setShiftIncome(e.target.value)}
             placeholder="150000"
-            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
         {n > 0 && shiftNum > 0 && (
@@ -208,12 +208,9 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             min="1"
             value={blueRate}
             onChange={(e) => setBlueRateLocal(e.target.value)}
-            placeholder="1200"
-            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-16 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20"
+            placeholder="1200 ARS"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-16 pr-3 text-sm text-text transition focus:border-income focus:outline-none focus:ring-2 focus:ring-income/20 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">
-            ARS
-          </span>
         </div>
       </div>
 
@@ -262,7 +259,7 @@ function FieldGroup({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:outline-none focus:ring-2 ${focusRing}`}
+          className={`w-full rounded-xl border border-border bg-surface-2 py-2.5 pl-7 pr-3 text-sm text-text transition focus:outline-none focus:ring-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${focusRing}`}
         />
       </div>
     </div>
