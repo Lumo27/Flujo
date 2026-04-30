@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addMonths, isSameMonth, isToday } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { formatCurrency } from '@/lib/format';
@@ -17,8 +17,10 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 export function ProjectionSettingsModal({ open, onClose }: Props) {
   const stored = useTransactionsStore((s) => s.settings.projectionSettings);
   const storedBlueRate = useTransactionsStore((s) => s.settings.blueRate);
+  const transactions = useTransactionsStore((s) => s.transactions);
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
   const setBlueRate = useTransactionsStore((s) => s.setBlueRate);
+  const addTransactions = useTransactionsStore((s) => s.addTransactions);
 
   const [estimated, setEstimated] = useState('');
   const [worst, setWorst] = useState('');
@@ -26,6 +28,7 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   const [workDays, setWorkDays] = useState<string[]>([]);
   const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
+  const [createShifts, setCreateShifts] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +38,7 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     setWorkDays(stored.workDays ?? []);
     setBlueRateLocal(storedBlueRate ? String(storedBlueRate) : '');
     setCalMonth(new Date());
+    setCreateShifts(false);
   }, [open, stored, storedBlueRate]);
 
   function toggleDay(iso: string) {
@@ -44,14 +48,40 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   }
 
   const handleSave = () => {
+    const shiftNum = parseFloat(shiftIncome) || 0;
     setProjectionSettings({
       estimatedMonthlyIncome: parseFloat(estimated) || 0,
       worstMonthlyIncome: parseFloat(worst) || 0,
-      shiftIncome: parseFloat(shiftIncome) || 0,
+      shiftIncome: shiftNum,
       workDays,
     });
     const rate = parseFloat(blueRate);
     if (rate > 0) setBlueRate(rate);
+
+    // Create pending income transactions for selected work days (opt-in)
+    if (createShifts && shiftNum > 0 && workDays.length > 0) {
+      // Find days that don't already have a "Turno" pending income transaction
+      const existingShiftDates = new Set(
+        transactions
+          .filter((t) => t.type === 'income' && t.status === 'pending' && t.title === 'Turno')
+          .map((t) => t.date),
+      );
+      const newDays = workDays.filter((d) => !existingShiftDates.has(d));
+      if (newDays.length > 0) {
+        addTransactions(
+          newDays.map((d) => ({
+            type: 'income' as const,
+            status: 'pending' as const,
+            variability: 'variable' as const,
+            category: 'salary' as const,
+            title: 'Turno',
+            date: d,
+            estimatedAmount: shiftNum,
+          })),
+        );
+      }
+    }
+
     onClose();
   };
 
@@ -62,6 +92,14 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   // Days selected in the currently viewed calendar month
   const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
   const totalWorkDays = workDays.length;
+
+  // Count new shifts that would be created (excluding days that already have a "Turno" pending)
+  const existingShiftDates = new Set(
+    transactions
+      .filter((t) => t.type === 'income' && t.status === 'pending' && t.title === 'Turno')
+      .map((t) => t.date),
+  );
+  const newShiftDays = workDays.filter((d) => !existingShiftDates.has(d));
 
   const calDays = calendarGrid(calMonth);
 
@@ -191,6 +229,13 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             )}
           </p>
         )}
+        {/* Warning: shift income × days is less than worst-case monthly income */}
+        {shiftNum > 0 && totalWorkDays > 0 && worstNum > 0 && shiftNum * totalWorkDays < worstNum && (
+          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-expense-soft px-3 py-2 text-[11px] text-expense">
+            <AlertTriangle size={11} className="mt-0.5 shrink-0" />
+            El ingreso por turno × días ({formatCurrency(shiftNum * totalWorkDays)}) es menor al Peor fin de mes ({formatCurrency(worstNum)}). El gráfico usará la meta estimada dividida por días.
+          </p>
+        )}
       </div>
 
       {/* Blue dollar rate */}
@@ -213,6 +258,28 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
           />
         </div>
       </div>
+
+      {/* Crear turnos como movimientos pendientes */}
+      {shiftNum > 0 && newShiftDays.length > 0 && (
+        <div className="mt-4 rounded-xl border border-border bg-surface-2/50 px-4 py-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={createShifts}
+              onChange={(e) => setCreateShifts(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
+            />
+            <div>
+              <p className="text-sm font-medium text-text">
+                Crear {newShiftDays.length} turno{newShiftDays.length !== 1 ? 's' : ''} como movimientos pendientes
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted">
+                Se agregará un ingreso pendiente de {formatCurrency(shiftNum)} por cada día de trabajo nuevo. Podés confirmarlo con el monto real cuando ocurra.
+              </p>
+            </div>
+          </label>
+        </div>
+      )}
 
       <div className="mt-5 flex justify-end gap-2">
         <button
