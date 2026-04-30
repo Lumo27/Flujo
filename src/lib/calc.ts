@@ -137,17 +137,19 @@ export function projectIncomeByDay(
   const n = workDaysThisMonth.length;
   const hasProjection = hasProjectionSettings(settings, ref);
 
-  // Estimated step: use shiftIncome if set, otherwise divide monthly goal by days
-  const perDayEst = hasProjection
-    ? settings.shiftIncome > 0
-      ? settings.shiftIncome
-      : settings.estimatedMonthlyIncome / n
-    : 0;
-
-  // Worst step: divide monthly worst by days
+  // Worst step: distribute worst-case monthly income evenly across work days.
   const perDayWorst = hasProjection && settings.worstMonthlyIncome > 0
     ? settings.worstMonthlyIncome / n
     : 0;
+
+  // Estimated step: always use estimatedMonthlyIncome ÷ n so the Estimación
+  // line ends exactly at the user's stated goal and is guaranteed to be ≥ Piso.
+  // shiftIncome is an informational helper in the modal (shows per-shift math)
+  // but must NOT drive the chart line — it can be set lower than worstMonthlyIncome/n
+  // which would cause the Estimación line to appear below Piso (inverted chart).
+  const perDayEst = hasProjection && settings.estimatedMonthlyIncome > 0
+    ? settings.estimatedMonthlyIncome / n
+    : perDayWorst; // fallback: at least match Piso if no estimated goal set
 
   const hasWorst = hasProjection && perDayWorst > 0;
 

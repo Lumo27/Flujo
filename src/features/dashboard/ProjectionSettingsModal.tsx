@@ -17,8 +17,10 @@ const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 export function ProjectionSettingsModal({ open, onClose }: Props) {
   const stored = useTransactionsStore((s) => s.settings.projectionSettings);
   const storedBlueRate = useTransactionsStore((s) => s.settings.blueRate);
+  const transactions = useTransactionsStore((s) => s.transactions);
   const setProjectionSettings = useTransactionsStore((s) => s.setProjectionSettings);
   const setBlueRate = useTransactionsStore((s) => s.setBlueRate);
+  const addTransactions = useTransactionsStore((s) => s.addTransactions);
 
   const [estimated, setEstimated] = useState('');
   const [worst, setWorst] = useState('');
@@ -26,7 +28,6 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   const [workDays, setWorkDays] = useState<string[]>([]);
   const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
-
   useEffect(() => {
     if (!open) return;
     setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
@@ -44,14 +45,34 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   }
 
   const handleSave = () => {
+    const shiftNum = parseFloat(shiftIncome) || 0;
     setProjectionSettings({
       estimatedMonthlyIncome: parseFloat(estimated) || 0,
       worstMonthlyIncome: parseFloat(worst) || 0,
-      shiftIncome: parseFloat(shiftIncome) || 0,
+      shiftIncome: shiftNum,
       workDays,
     });
     const rate = parseFloat(blueRate);
     if (rate > 0) setBlueRate(rate);
+
+    // Automatically create a pending income transaction for each new work day.
+    // Income is always pending until confirmed — you don't count money you haven't
+    // received yet. Days that already have a "Turno" pending transaction are skipped
+    // to avoid duplicates when the user re-opens the modal to adjust settings.
+    if (shiftNum > 0 && newShiftDays.length > 0) {
+      addTransactions(
+        newShiftDays.map((d) => ({
+          type: 'income' as const,
+          status: 'pending' as const,
+          variability: 'variable' as const,
+          category: 'salary' as const,
+          title: 'Turno',
+          date: d,
+          estimatedAmount: shiftNum,
+        })),
+      );
+    }
+
     onClose();
   };
 
@@ -62,6 +83,15 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   // Days selected in the currently viewed calendar month
   const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
   const totalWorkDays = workDays.length;
+
+  // Work days that don't yet have a "Turno" pending transaction — these will be
+  // auto-created on save (avoids duplicates when re-opening modal to tweak settings).
+  const existingShiftDates = new Set(
+    transactions
+      .filter((t) => t.type === 'income' && t.status === 'pending' && t.title === 'Turno')
+      .map((t) => t.date),
+  );
+  const newShiftDays = workDays.filter((d) => !existingShiftDates.has(d));
 
   const calDays = calendarGrid(calMonth);
 
@@ -213,6 +243,17 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
           />
         </div>
       </div>
+
+      {/* Info: turnos nuevos que se van a crear al guardar */}
+      {shiftNum > 0 && newShiftDays.length > 0 && (
+        <p className="mt-3 text-[11px] text-muted">
+          Al guardar se van a crear{' '}
+          <span className="font-medium text-income">
+            {newShiftDays.length} turno{newShiftDays.length !== 1 ? 's' : ''} pendientes
+          </span>{' '}
+          de {formatCurrency(shiftNum)} c/u — confirmá cada uno cuando cobres.
+        </p>
+      )}
 
       <div className="mt-5 flex justify-end gap-2">
         <button
