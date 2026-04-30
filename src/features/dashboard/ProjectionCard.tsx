@@ -1,6 +1,5 @@
 import { TrendingUp, ShieldAlert } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
-import { MinBalancePoint } from '@/lib/calc';
 
 interface IncomeProjection {
   /** Sum of confirmed income with real amounts. */
@@ -78,5 +77,3 @@ export function ProjectionCard({ income, isCurrentMonth }: Props) {
   );
 }
 
-// kept for type import compatibility
-export type { MinBalancePoint };

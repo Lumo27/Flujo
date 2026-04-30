@@ -28,7 +28,6 @@ interface Props {
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 export function TransactionFormModal({ open, onClose, transaction }: Props) {
-  const addTransaction = useTransactionsStore((s) => s.addTransaction);
   const addTransactions = useTransactionsStore((s) => s.addTransactions);
   const updateTransaction = useTransactionsStore((s) => s.updateTransaction);
 
