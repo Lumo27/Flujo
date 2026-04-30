@@ -28,8 +28,6 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   const [workDays, setWorkDays] = useState<string[]>([]);
   const [blueRate, setBlueRateLocal] = useState('');
   const [calMonth, setCalMonth] = useState(new Date());
-  const [createShifts, setCreateShifts] = useState(false);
-
   useEffect(() => {
     if (!open) return;
     setEstimated(stored.estimatedMonthlyIncome ? String(stored.estimatedMonthlyIncome) : '');
@@ -38,7 +36,6 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     setWorkDays(stored.workDays ?? []);
     setBlueRateLocal(storedBlueRate ? String(storedBlueRate) : '');
     setCalMonth(new Date());
-    setCreateShifts(false);
   }, [open, stored, storedBlueRate]);
 
   function toggleDay(iso: string) {
@@ -58,28 +55,22 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
     const rate = parseFloat(blueRate);
     if (rate > 0) setBlueRate(rate);
 
-    // Create pending income transactions for selected work days (opt-in)
-    if (createShifts && shiftNum > 0 && workDays.length > 0) {
-      // Find days that don't already have a "Turno" pending income transaction
-      const existingShiftDates = new Set(
-        transactions
-          .filter((t) => t.type === 'income' && t.status === 'pending' && t.title === 'Turno')
-          .map((t) => t.date),
+    // Automatically create a pending income transaction for each new work day.
+    // Income is always pending until confirmed — you don't count money you haven't
+    // received yet. Days that already have a "Turno" pending transaction are skipped
+    // to avoid duplicates when the user re-opens the modal to adjust settings.
+    if (shiftNum > 0 && newShiftDays.length > 0) {
+      addTransactions(
+        newShiftDays.map((d) => ({
+          type: 'income' as const,
+          status: 'pending' as const,
+          variability: 'variable' as const,
+          category: 'salary' as const,
+          title: 'Turno',
+          date: d,
+          estimatedAmount: shiftNum,
+        })),
       );
-      const newDays = workDays.filter((d) => !existingShiftDates.has(d));
-      if (newDays.length > 0) {
-        addTransactions(
-          newDays.map((d) => ({
-            type: 'income' as const,
-            status: 'pending' as const,
-            variability: 'variable' as const,
-            category: 'salary' as const,
-            title: 'Turno',
-            date: d,
-            estimatedAmount: shiftNum,
-          })),
-        );
-      }
     }
 
     onClose();
@@ -93,7 +84,8 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   const n = workDays.filter((d) => isSameMonth(new Date(d + 'T00:00:00'), calMonth)).length;
   const totalWorkDays = workDays.length;
 
-  // Count new shifts that would be created (excluding days that already have a "Turno" pending)
+  // Work days that don't yet have a "Turno" pending transaction — these will be
+  // auto-created on save (avoids duplicates when re-opening modal to tweak settings).
   const existingShiftDates = new Set(
     transactions
       .filter((t) => t.type === 'income' && t.status === 'pending' && t.title === 'Turno')
@@ -259,26 +251,15 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
         </div>
       </div>
 
-      {/* Crear turnos como movimientos pendientes */}
+      {/* Info: turnos nuevos que se van a crear al guardar */}
       {shiftNum > 0 && newShiftDays.length > 0 && (
-        <div className="mt-4 rounded-xl border border-border bg-surface-2/50 px-4 py-3">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={createShifts}
-              onChange={(e) => setCreateShifts(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-primary"
-            />
-            <div>
-              <p className="text-sm font-medium text-text">
-                Crear {newShiftDays.length} turno{newShiftDays.length !== 1 ? 's' : ''} como movimientos pendientes
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted">
-                Se agregará un ingreso pendiente de {formatCurrency(shiftNum)} por cada día de trabajo nuevo. Podés confirmarlo con el monto real cuando ocurra.
-              </p>
-            </div>
-          </label>
-        </div>
+        <p className="mt-3 text-[11px] text-muted">
+          Al guardar se van a crear{' '}
+          <span className="font-medium text-income">
+            {newShiftDays.length} turno{newShiftDays.length !== 1 ? 's' : ''} pendientes
+          </span>{' '}
+          de {formatCurrency(shiftNum)} c/u — confirmá cada uno cuando cobres.
+        </p>
       )}
 
       <div className="mt-5 flex justify-end gap-2">
