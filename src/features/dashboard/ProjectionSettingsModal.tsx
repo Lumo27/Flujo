@@ -112,7 +112,7 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="text-xs font-semibold capitalize text-text">
+            <span className="text-xs font-semibold text-text">
               {monthLabel(calMonth)}
             </span>
             <button

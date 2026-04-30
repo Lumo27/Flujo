@@ -12,12 +12,17 @@ export function DataToolsCard() {
   const [confirmImport, setConfirmImport] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Export ────────────────────────────────────────────────────────────────
   function handleExport() {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    if (!raw) {
+      setExportError('No hay datos guardados para exportar. Cargá movimientos primero.');
+      return;
+    }
+    setExportError(null);
     const blob = new Blob([raw], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -107,6 +112,11 @@ export function DataToolsCard() {
           </button>
         </div>
 
+        {exportError && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+            <AlertTriangle size={12} /> {exportError}
+          </p>
+        )}
         {importError && (
           <p className="mt-3 flex items-center gap-1.5 text-xs text-expense">
             <AlertTriangle size={12} /> {importError}
@@ -135,8 +145,8 @@ export function DataToolsCard() {
       <Modal open={confirmClear} onClose={() => setConfirmClear(false)} title="Vaciar datos">
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            Esto va a eliminar <span className="font-medium text-expense">todos los movimientos</span> del
-            mes y resetear el saldo a cero. Las proyecciones se conservan.
+            Esto va a eliminar <span className="font-medium text-expense">todos los movimientos</span> de
+            todos los meses y resetear el saldo y las proyecciones a cero.
             <br /><br />
             <span className="font-medium text-text">Esta acción no se puede deshacer.</span> Exportá un backup
             primero si querés guardar los datos.

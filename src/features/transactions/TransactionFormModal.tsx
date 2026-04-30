@@ -225,9 +225,9 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
               <span className="text-sm font-medium text-text">
                 Días <span className="text-expense">*</span>
               </span>
-              <span className={`text-[11px] ${selectedDates.length === 0 ? 'text-expense' : 'text-muted'}`}>
+              <span className="text-[11px] text-muted">
                 {selectedDates.length === 0
-                  ? 'Seleccioná al menos un día'
+                  ? 'Ningún día seleccionado'
                   : selectedDates.length === 1
                     ? '1 día seleccionado'
                     : `${selectedDates.length} días seleccionados`}
@@ -244,7 +244,7 @@ export function TransactionFormModal({ open, onClose, transaction }: Props) {
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs font-semibold capitalize text-text">
+                <span className="text-xs font-semibold text-text">
                   {monthLabel(calendarMonth)}
                 </span>
                 <button
