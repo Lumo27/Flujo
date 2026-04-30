@@ -132,15 +132,15 @@ export const useTransactionsStore = create<TransactionsState>()(
       },
 
       clearAll: () =>
-        set({
+        set((state) => ({
           transactions: [],
           settings: {
             startingBalance: 0,
             seeded: true,
-            blueRate: 1200,
+            blueRate: state.settings.blueRate, // preserve configured rate
             projectionSettings: DEFAULT_PROJECTION_SETTINGS,
           },
-        }),
+        })),
     }),
     {
       name: PERSIST_KEY,
