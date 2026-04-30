@@ -15,6 +15,7 @@ export function TransactionItem({ t }: { t: Transaction }) {
   const removeTransaction = useTransactionsStore((s) => s.removeTransaction);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [actual, setActual] = useState(String(t.estimatedAmount));
 
@@ -96,7 +97,7 @@ export function TransactionItem({ t }: { t: Transaction }) {
           </button>
 
           <button
-            onClick={() => removeTransaction(t.id)}
+            onClick={() => setDeleteOpen(true)}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-expense"
             aria-label="Eliminar"
             title="Eliminar movimiento"
@@ -137,6 +138,28 @@ export function TransactionItem({ t }: { t: Transaction }) {
             <Button type="submit">Confirmar</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal confirmar eliminación */}
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Eliminar movimiento">
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            Vas a eliminar{' '}
+            <span className="font-medium text-text">"{t.title}"</span>.{' '}
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleteOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => { removeTransaction(t.id); setDeleteOpen(false); }}
+              className="bg-expense text-white shadow-none hover:bg-expense/90"
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       {/* Modal editar — reutiliza TransactionFormModal en modo edición */}
