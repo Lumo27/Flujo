@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addMonths, isSameMonth, isToday } from 'date-fns';
-import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useTransactionsStore } from '@/store/useTransactionsStore';
 import { formatCurrency } from '@/lib/format';
@@ -219,13 +219,6 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
                 (meta: {formatCurrency(estNum)})
               </span>
             )}
-          </p>
-        )}
-        {/* Warning: shift income × days is less than worst-case monthly income */}
-        {shiftNum > 0 && totalWorkDays > 0 && worstNum > 0 && shiftNum * totalWorkDays < worstNum && (
-          <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-expense-soft px-3 py-2 text-[11px] text-expense">
-            <AlertTriangle size={11} className="mt-0.5 shrink-0" />
-            El ingreso por turno × días ({formatCurrency(shiftNum * totalWorkDays)}) es menor al Peor fin de mes ({formatCurrency(worstNum)}). El gráfico usará la meta estimada dividida por días.
           </p>
         )}
       </div>
