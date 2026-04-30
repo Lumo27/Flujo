@@ -77,7 +77,6 @@ export function ProjectionSettingsModal({ open, onClose }: Props) {
   };
 
   const estNum = parseFloat(estimated) || 0;
-  const worstNum = parseFloat(worst) || 0;
   const shiftNum = parseFloat(shiftIncome) || 0;
 
   // Days selected in the currently viewed calendar month

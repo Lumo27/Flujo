@@ -105,9 +105,10 @@ export function CashflowChart({ points, hasProjection, isCurrentMonth }: Props) 
               }}
               labelStyle={{ color: THEME.axis, marginBottom: 4 }}
               itemStyle={{ paddingTop: 2 }}
-              formatter={(value: number | null, name) =>
-                value !== null ? [formatCurrency(value), name] : ['—', name]
-              }
+              formatter={(value, name) => {
+                const n = value as number | null;
+                return n !== null ? [formatCurrency(n), name] : ['—', name];
+              }}
             />
 
             {/* Piso primero (debajo), luego Estimación, Realidad encima */}
