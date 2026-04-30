@@ -28,6 +28,21 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   workDays: [],
 };
 
+/**
+ * Returns true if the projection settings have enough data to draw chart lines
+ * for a given reference month. Single source of truth — used by both calc.ts
+ * internals and DashboardPage.
+ */
+export function hasProjectionSettings(settings: ProjectionSettings, ref: Date): boolean {
+  const workDaysThisMonth = settings.workDays.filter((d) => isInMonth(d, ref));
+  return (
+    workDaysThisMonth.length > 0 &&
+    (settings.estimatedMonthlyIncome > 0 ||
+      settings.worstMonthlyIncome > 0 ||
+      settings.shiftIncome > 0)
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convert a transaction amount to ARS using the blue rate. */
@@ -120,11 +135,7 @@ export function projectIncomeByDay(
     .sort();
 
   const n = workDaysThisMonth.length;
-  const hasProjection =
-    n > 0 &&
-    (settings.estimatedMonthlyIncome > 0 ||
-      settings.worstMonthlyIncome > 0 ||
-      settings.shiftIncome > 0);
+  const hasProjection = hasProjectionSettings(settings, ref);
 
   // Estimated step: use shiftIncome if set, otherwise divide monthly goal by days
   const perDayEst = hasProjection

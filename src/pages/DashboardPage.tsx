@@ -8,7 +8,7 @@ import { ProjectionCard } from '@/features/dashboard/ProjectionCard';
 import { CashflowChart } from '@/features/dashboard/CashflowChart';
 import { UpcomingList } from '@/features/dashboard/UpcomingList';
 import { ProjectionSettingsModal } from '@/features/dashboard/ProjectionSettingsModal';
-import { currentBalance, projectIncomeByDay, monthIncomeProjection, monthSummary, upcoming } from '@/lib/calc';
+import { currentBalance, projectIncomeByDay, monthIncomeProjection, monthSummary, upcoming, hasProjectionSettings } from '@/lib/calc';
 import { monthLabel } from '@/lib/date';
 
 export function DashboardPage() {
@@ -35,11 +35,7 @@ export function DashboardPage() {
     () => projectIncomeByDay(transactions, viewMonth, projectionSettings, blueRate),
     [transactions, viewMonth, projectionSettings, blueRate],
   );
-  const hasProjection =
-    projectionSettings.workDays.length > 0 &&
-    (projectionSettings.estimatedMonthlyIncome > 0 ||
-      projectionSettings.worstMonthlyIncome > 0 ||
-      projectionSettings.shiftIncome > 0);
+  const hasProjection = hasProjectionSettings(projectionSettings, viewMonth);
   const incomeProjection = useMemo(
     () => monthIncomeProjection(transactions, viewMonth, projectionSettings, blueRate),
     [transactions, viewMonth, projectionSettings, blueRate],

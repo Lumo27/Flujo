@@ -2,6 +2,7 @@ import { Transaction } from '@/types/transaction';
 import { TransactionItem } from './TransactionItem';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Inbox } from 'lucide-react';
+import { formatDateLong } from '@/lib/format';
 
 interface Props {
   transactions: Transaction[];
@@ -41,18 +42,10 @@ function groupByDate(transactions: Transaction[]): Array<[string, Transaction[]]
   const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
   const map = new Map<string, Transaction[]>();
   for (const t of sorted) {
-    const key = longDate(t.date);
+    // Use formatDateLong for consistent sentence-case across all browsers
+    const key = formatDateLong(t.date);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(t);
   }
   return Array.from(map.entries());
-}
-
-function longDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  return new Intl.DateTimeFormat('es-AR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-  }).format(d);
 }
